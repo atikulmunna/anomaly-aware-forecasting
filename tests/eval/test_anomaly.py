@@ -1,0 +1,90 @@
+import math
+
+import numpy as np
+import pytest
+
+from aaf.eval.anomaly import (
+    Range,
+    binary_ranges,
+    detection_delay,
+    false_alarm_rate_per_1000,
+    range_precision_recall,
+    select_threshold_by_range_f1,
+    threshold_scores,
+)
+
+
+def test_binary_ranges_uses_half_open_intervals() -> None:
+    labels = np.array([0, 1, 1, 0, 1, 1, 1])
+
+    assert binary_ranges(labels) == [Range(1, 3), Range(4, 7)]
+
+
+def test_range_precision_recall_is_perfect_for_identical_ranges() -> None:
+    labels = np.array([0, 1, 1, 0, 1])
+
+    metrics = range_precision_recall(labels, labels)
+
+    assert metrics.precision == pytest.approx(1.0)
+    assert metrics.recall == pytest.approx(1.0)
+    assert metrics.f1 == pytest.approx(1.0)
+
+
+def test_range_precision_recall_penalizes_partial_overlap() -> None:
+    true = np.array([0, 1, 1, 1, 1, 0])
+    pred = np.array([0, 0, 1, 1, 0, 0])
+
+    metrics = range_precision_recall(true, pred)
+
+    assert metrics.precision == pytest.approx(1.0)
+    assert metrics.recall == pytest.approx(0.5)
+    assert metrics.f1 == pytest.approx(2.0 / 3.0)
+
+
+def test_threshold_scores_marks_large_scores_as_anomalous() -> None:
+    scores = np.array([0.1, 0.5, 0.9])
+
+    assert threshold_scores(scores, 0.5).tolist() == [False, True, True]
+
+
+def test_select_threshold_uses_range_f1_objective() -> None:
+    scores = np.array([0.1, 0.8, 0.7, 0.2, 0.3])
+    labels = np.array([0, 1, 1, 0, 0])
+
+    threshold, metrics = select_threshold_by_range_f1(scores, labels)
+
+    assert threshold == pytest.approx(0.7)
+    assert metrics.f1 == pytest.approx(1.0)
+
+
+def test_detection_delay_reports_first_hit_inside_each_range() -> None:
+    true = np.array([0, 1, 1, 1, 0, 1, 1])
+    pred = np.array([0, 0, 0, 1, 0, 0, 0])
+
+    delay = detection_delay(true, pred)
+
+    assert delay.detected == 1
+    assert delay.missed == 1
+    assert delay.mean == pytest.approx(2.0)
+    assert delay.median == pytest.approx(2.0)
+
+
+def test_detection_delay_is_nan_when_all_ranges_are_missed() -> None:
+    delay = detection_delay(np.array([0, 1, 1]), np.array([0, 0, 0]))
+
+    assert delay.detected == 0
+    assert delay.missed == 1
+    assert math.isnan(delay.mean)
+    assert math.isnan(delay.median)
+
+
+def test_false_alarm_rate_counts_predicted_range_starts_in_stable_regions() -> None:
+    true = np.array([0, 0, 1, 1, 0, 0])
+    pred = np.array([1, 1, 0, 0, 1, 0])
+
+    assert false_alarm_rate_per_1000(true, pred) == pytest.approx(500.0)
+
+
+def test_rejects_non_binary_labels() -> None:
+    with pytest.raises(ValueError, match="binary"):
+        binary_ranges(np.array([0, 2, 1]))
