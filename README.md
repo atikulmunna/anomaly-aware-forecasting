@@ -45,6 +45,16 @@ This project emphasizes disciplined evaluation over leaderboard chasing:
 
 This repository is currently being initialized from the project specification. Implementation code, tests, and experiment configuration files will be added incrementally.
 
+## Development Workflow
+
+Implementation should proceed module by module, with testing treated as part of completion rather than a later cleanup step.
+
+- Each module must be thoroughly tested after completion and before work moves to the next module.
+- New features should not be allowed to break previously completed modules.
+- Progress should be committed in small, meaningful increments and pushed regularly.
+- Avoid large, end-of-feature commits that mix unrelated changes.
+- Keep local-only specification documents and experiment artifacts out of Git.
+
 ## Technology Stack
 
 - Python 3.10+
