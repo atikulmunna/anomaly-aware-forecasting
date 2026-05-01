@@ -32,8 +32,8 @@ wandb/
 mlruns/
 
 # Data
-data/
-datasets/
+/data/
+/datasets/
 
 # Environment and local config
 .env
