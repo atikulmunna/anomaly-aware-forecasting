@@ -13,6 +13,9 @@ dependencies = [
     "scipy>=1.10",
 ]
 
+[project.scripts]
+aaf-evaluate = "aaf.eval.cli:main"
+
 [project.optional-dependencies]
 dev = [
     "hypothesis>=6.0",
