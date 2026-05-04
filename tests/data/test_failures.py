@@ -63,7 +63,16 @@ def test_spike_train_adds_spikes_at_periodic_indices() -> None:
     base = make_series()
     series = apply_failure_events(
         base,
-        (FailureEvent(mode="spike_train", start=1, end=8, channels=(0,), magnitude=10.0, period=3),),
+        (
+            FailureEvent(
+                mode="spike_train",
+                start=1,
+                end=8,
+                channels=(0,),
+                magnitude=10.0,
+                period=3,
+            ),
+        ),
         seed=1,
     )
 

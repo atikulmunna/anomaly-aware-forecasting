@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from aaf.data.synthetic import FloatArray, IntArray, SyntheticSeries
+from aaf.data.synthetic import FloatArray, SyntheticSeries
 
 SUPPORTED_FAILURE_MODES = {
     "stuck_at",
@@ -159,4 +159,7 @@ def _apply_phase_shift(
     channels: tuple[int, ...],
 ) -> None:
     source_indices = np.maximum(np.arange(event.start, event.end) - event.lag, 0)
-    observations[event.start : event.end, channels] = observations[source_indices[:, np.newaxis], channels]
+    observations[event.start : event.end, channels] = observations[
+        source_indices[:, np.newaxis],
+        channels,
+    ]

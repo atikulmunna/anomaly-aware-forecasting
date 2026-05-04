@@ -57,7 +57,10 @@ def align_regime_labels(true_labels: ArrayLike, pred_labels: ArrayLike) -> Regim
             counts[i, j] = int(np.sum((true == true_value) & (pred == pred_value)))
 
     row_ind, col_ind = linear_sum_assignment(-counts)
-    mapping = {int(pred_values[col]): int(true_values[row]) for row, col in zip(row_ind, col_ind)}
+    mapping = {
+        int(pred_values[col]): int(true_values[row])
+        for row, col in zip(row_ind, col_ind, strict=True)
+    }
     fallback = int(true_values[0])
     aligned = np.asarray([mapping.get(int(label), fallback) for label in pred], dtype=np.int64)
     confusion = _fixed_label_confusion(true, aligned, true_values)
@@ -120,7 +123,7 @@ def _contingency_matrix(true: IntArray, pred: IntArray) -> IntArray:
 def _fixed_label_confusion(true: IntArray, pred: IntArray, labels: IntArray) -> IntArray:
     positions = {int(label): idx for idx, label in enumerate(labels)}
     confusion = np.zeros((len(labels), len(labels)), dtype=np.int64)
-    for true_value, pred_value in zip(true, pred):
+    for true_value, pred_value in zip(true, pred, strict=True):
         confusion[positions[int(true_value)], positions[int(pred_value)]] += 1
     return confusion
 

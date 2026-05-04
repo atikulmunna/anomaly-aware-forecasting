@@ -266,7 +266,11 @@ def _sample_transition_matrix(
     return matrix
 
 
-def _stabilize_ar_coefficients(coefficients: FloatArray, *, max_abs_sum: float = 0.95) -> FloatArray:
+def _stabilize_ar_coefficients(
+    coefficients: FloatArray,
+    *,
+    max_abs_sum: float = 0.95,
+) -> FloatArray:
     abs_sums = np.sum(np.abs(coefficients), axis=1, keepdims=True)
     scale = np.minimum(1.0, max_abs_sum / np.maximum(abs_sums, 1e-12))
     return np.asarray(coefficients * scale, dtype=np.float64)

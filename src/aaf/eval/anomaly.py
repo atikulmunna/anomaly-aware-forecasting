@@ -106,9 +106,15 @@ def select_threshold_by_range_f1(
 
     candidates = _threshold_candidates(score_array)
     best_threshold = float(candidates[0])
-    best_metrics = range_precision_recall(true_labels, threshold_scores(score_array, best_threshold))
+    best_metrics = range_precision_recall(
+        true_labels,
+        threshold_scores(score_array, best_threshold),
+    )
     for threshold in candidates[1:]:
-        metrics = range_precision_recall(true_labels, threshold_scores(score_array, float(threshold)))
+        metrics = range_precision_recall(
+            true_labels,
+            threshold_scores(score_array, float(threshold)),
+        )
         if _is_better(metrics, best_metrics):
             best_threshold = float(threshold)
             best_metrics = metrics

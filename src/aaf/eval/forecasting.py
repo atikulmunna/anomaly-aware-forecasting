@@ -233,7 +233,10 @@ def sample_mixture(
     flat_means = forecast.means.reshape(-1, forecast.n_components, forecast.n_channels)
     flat_stds = forecast.stds.reshape(-1, forecast.n_components, forecast.n_channels)
 
-    flat_samples = np.empty((flat_weights.shape[0], n_samples, forecast.n_channels), dtype=np.float64)
+    flat_samples = np.empty(
+        (flat_weights.shape[0], n_samples, forecast.n_channels),
+        dtype=np.float64,
+    )
     for idx, probs in enumerate(flat_weights):
         components = rng.choice(forecast.n_components, size=n_samples, p=probs)
         loc = flat_means[idx, components]

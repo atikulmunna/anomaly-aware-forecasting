@@ -2,8 +2,8 @@ import pytest
 
 torch = pytest.importorskip("torch", exc_type=ImportError)
 
-from aaf.models.mdn_lstm import MDNLSTMConfig, MDNLSTMForecaster
-from aaf.models.mixture import mixture_nll
+from aaf.models.mdn_lstm import MDNLSTMConfig, MDNLSTMForecaster  # noqa: E402
+from aaf.models.mixture import mixture_nll  # noqa: E402
 
 
 def test_mdn_lstm_forward_shapes() -> None:

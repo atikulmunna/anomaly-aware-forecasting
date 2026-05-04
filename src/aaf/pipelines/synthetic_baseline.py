@@ -4,15 +4,21 @@ from __future__ import annotations
 
 import argparse
 import json
+from collections.abc import Sequence
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any, Sequence
+from typing import Any
 
 import numpy as np
 
 from aaf.baselines.forecasting import SeasonalNaiveForecaster
 from aaf.data.failures import FailureEvent, apply_failure_events
-from aaf.data.preprocessing import Standardizer, WindowedDataset, make_windowed_dataset, standardize_series
+from aaf.data.preprocessing import (
+    Standardizer,
+    WindowedDataset,
+    make_windowed_dataset,
+    standardize_series,
+)
 from aaf.data.synthetic import (
     FloatArray,
     GeneratorConfigSpace,
@@ -111,7 +117,9 @@ def run_synthetic_baseline(
 
     standardizer = Standardizer.fit(_concat_observations(train_series))
     train_standardized = tuple(standardize_series(series, standardizer) for series in train_series)
-    validation_standardized = tuple(standardize_series(series, standardizer) for series in validation_series)
+    validation_standardized = tuple(
+        standardize_series(series, standardizer) for series in validation_series
+    )
     test_standardized = tuple(standardize_series(series, standardizer) for series in test_series)
 
     train_observations = _concat_observations(train_standardized)
@@ -185,7 +193,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--n-channels", type=int, default=1)
     parser.add_argument("--ar-order", type=int, default=2)
     parser.add_argument("--energy-samples", type=int, default=128)
-    parser.add_argument("--overwrite", action="store_true", help="Allow writing into a non-empty directory.")
+    parser.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Allow writing into a non-empty directory.",
+    )
     return parser
 
 
@@ -246,8 +258,20 @@ def _default_failure_events(length: int, n_channels: int) -> tuple[FailureEvent,
     second_end = min(length, second_start + max(3, length // 25))
     channel = (0,) if n_channels > 0 else None
     return (
-        FailureEvent(mode="additive_drift", start=first_start, end=first_end, channels=channel, magnitude=3.0),
-        FailureEvent(mode="spike_train", start=second_start, end=second_end, channels=channel, magnitude=5.0),
+        FailureEvent(
+            mode="additive_drift",
+            start=first_start,
+            end=first_end,
+            channels=channel,
+            magnitude=3.0,
+        ),
+        FailureEvent(
+            mode="spike_train",
+            start=second_start,
+            end=second_end,
+            channels=channel,
+            magnitude=5.0,
+        ),
     )
 
 

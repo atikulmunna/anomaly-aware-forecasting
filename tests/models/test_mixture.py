@@ -4,7 +4,12 @@ import pytest
 
 torch = pytest.importorskip("torch", exc_type=ImportError)
 
-from aaf.models.mixture import MixtureParams, mixture_mean, mixture_nll, mixture_nll_values
+from aaf.models.mixture import (  # noqa: E402
+    MixtureParams,
+    mixture_mean,
+    mixture_nll,
+    mixture_nll_values,
+)
 
 
 def test_single_standard_normal_nll_matches_known_value() -> None:

@@ -76,7 +76,10 @@ def test_run_synthetic_baseline_is_reproducible_for_seed(tmp_path) -> None:
     second_metrics = json.loads((second_dir / "metrics.json").read_text(encoding="utf-8"))
     assert first_metrics == second_metrics
 
-    with np.load(first_dir / "forecast.npz") as first, np.load(second_dir / "forecast.npz") as second:
+    with (
+        np.load(first_dir / "forecast.npz") as first,
+        np.load(second_dir / "forecast.npz") as second,
+    ):
         assert np.array_equal(first["observed"], second["observed"])
         assert np.array_equal(first["means"], second["means"])
 
