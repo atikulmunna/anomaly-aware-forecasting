@@ -11,6 +11,7 @@ from aaf.eval.forecasting import (
     energy_score,
     mean_absolute_error,
     negative_log_likelihood,
+    negative_log_likelihood_values,
     pit_values,
     predictive_mean,
     root_mean_squared_error,
@@ -27,6 +28,21 @@ def test_standard_normal_nll_known_value() -> None:
 
     assert negative_log_likelihood(np.array([[0.0]]), forecast) == pytest.approx(
         0.5 * math.log(2.0 * math.pi)
+    )
+
+
+def test_nll_values_preserve_batch_dimensions() -> None:
+    forecast = MixtureForecast.from_arrays(
+        weights=np.ones((2, 3, 1)),
+        means=np.zeros((2, 3, 1, 1)),
+        stds=np.ones((2, 3, 1, 1)),
+    )
+
+    values = negative_log_likelihood_values(np.zeros((2, 3, 1)), forecast)
+
+    assert values.shape == (2, 3)
+    assert negative_log_likelihood(np.zeros((2, 3, 1)), forecast) == pytest.approx(
+        float(values.mean())
     )
 
 

@@ -84,6 +84,12 @@ class MixtureForecast:
 def negative_log_likelihood(observed: ArrayLike, forecast: MixtureForecast) -> float:
     """Return mean NLL under a diagonal multivariate Gaussian mixture."""
 
+    return float(np.mean(negative_log_likelihood_values(observed, forecast)))
+
+
+def negative_log_likelihood_values(observed: ArrayLike, forecast: MixtureForecast) -> FloatArray:
+    """Return per-forecast NLL values with shape matching the forecast batch dimensions."""
+
     y = _observed_array(observed, forecast)
     weights = forecast.normalized_weights()
     diff = y[..., np.newaxis, :] - forecast.means
@@ -91,7 +97,7 @@ def negative_log_likelihood(observed: ArrayLike, forecast: MixtureForecast) -> f
     log_component = -0.5 * (((diff / stds) ** 2) + (2.0 * np.log(stds)) + _LOG_2PI)
     log_component = log_component.sum(axis=-1)
     log_mix = _logsumexp(np.log(weights) + log_component, axis=-1)
-    return float(-np.mean(log_mix))
+    return np.asarray(-log_mix, dtype=np.float64)
 
 
 def predictive_mean(forecast: MixtureForecast) -> FloatArray:
