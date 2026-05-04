@@ -55,6 +55,26 @@ Implementation should proceed module by module, with testing treated as part of 
 - Avoid large, end-of-feature commits that mix unrelated changes.
 - Keep local-only specification documents and experiment artifacts out of Git.
 
+## Local Development Setup
+
+On Windows, use a project-local virtual environment instead of the global Anaconda environment:
+
+```powershell
+py -3.13 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install --upgrade pip
+.\.venv\Scripts\python.exe -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+.\.venv\Scripts\python.exe -m pip install numpy scipy pytest mypy ruff hypothesis hatchling
+.\.venv\Scripts\python.exe -m pip install -e . --no-deps
+```
+
+Run the quality gates from the same environment:
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest
+.\.venv\Scripts\python.exe -m mypy src
+.\.venv\Scripts\python.exe -m ruff check .
+```
+
 ## Technology Stack
 
 - Python 3.10+
