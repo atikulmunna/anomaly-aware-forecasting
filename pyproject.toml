@@ -15,6 +15,7 @@ dependencies = [
 
 [project.scripts]
 aaf-evaluate = "aaf.eval.cli:main"
+aaf-synthetic-baseline = "aaf.pipelines.synthetic_baseline:main"
 
 [project.optional-dependencies]
 dev = [
