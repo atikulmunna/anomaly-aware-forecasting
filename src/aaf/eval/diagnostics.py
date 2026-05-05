@@ -85,3 +85,23 @@ def std_summary(stds: ArrayLike) -> dict[str, float]:
         "p95": float(np.quantile(values, 0.95)),
         "max": float(np.max(values)),
     }
+
+
+def mean_pairwise_distance(means: ArrayLike) -> float:
+    """Return average pairwise Euclidean distance between component means."""
+
+    values = np.asarray(means, dtype=np.float64)
+    if values.ndim < 2:
+        raise ValueError("means must include component and channel dimensions")
+    if np.any(~np.isfinite(values)):
+        raise ValueError("means must be finite")
+    n_components = values.shape[-2]
+    if n_components < 2:
+        return 0.0
+
+    flat = values.reshape(-1, n_components, values.shape[-1])
+    distances = []
+    for first in range(n_components):
+        for second in range(first + 1, n_components):
+            distances.append(np.linalg.norm(flat[:, first, :] - flat[:, second, :], axis=-1))
+    return float(np.mean(np.concatenate(distances)))

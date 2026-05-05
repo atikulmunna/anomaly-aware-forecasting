@@ -7,6 +7,7 @@ from aaf.eval.diagnostics import (
     active_component_count,
     component_mean_weights,
     effective_component_count,
+    mean_pairwise_distance,
     mixture_entropy_values,
     normalized_mixture_entropy_values,
     normalized_weights,
@@ -63,6 +64,16 @@ def test_std_summary_reports_distribution_statistics() -> None:
 def test_std_summary_rejects_non_positive_stds() -> None:
     with pytest.raises(ValueError, match="strictly positive"):
         std_summary(np.array([1.0, 0.0]))
+
+
+def test_mean_pairwise_distance_is_zero_for_single_component() -> None:
+    assert mean_pairwise_distance(np.zeros((4, 1, 2))) == pytest.approx(0.0)
+
+
+def test_mean_pairwise_distance_uses_euclidean_component_distance() -> None:
+    means = np.array([[[0.0, 0.0], [3.0, 4.0]]])
+
+    assert mean_pairwise_distance(means) == pytest.approx(5.0)
 
 
 def test_rejects_invalid_weights() -> None:
