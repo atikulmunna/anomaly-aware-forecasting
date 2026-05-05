@@ -75,6 +75,17 @@ Run the quality gates from the same environment:
 .\.venv\Scripts\python.exe -m ruff check .
 ```
 
+## Run Diagnostics
+
+Model and baseline pipelines write `mixture_diagnostics.json` beside `metrics.json`.
+These diagnostics are intended to catch MDN pathologies early:
+
+- `normalized_entropy_mean` near zero suggests component collapse.
+- `active_components_1pct` shows how many components receive meaningful average weight.
+- `effective_components` summarizes component usage from mean mixture weights.
+- `std` reports predictive standard-deviation health, including tail values.
+- `mean_pairwise_distance` helps identify components with identical or near-identical means.
+
 ## Technology Stack
 
 - Python 3.10+
