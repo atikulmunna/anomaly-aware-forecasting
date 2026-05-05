@@ -8,11 +8,13 @@ from aaf.eval.diagnostics import (
     component_mean_weights,
     effective_component_count,
     mean_pairwise_distance,
+    mixture_diagnostics,
     mixture_entropy_values,
     normalized_mixture_entropy_values,
     normalized_weights,
     std_summary,
 )
+from aaf.eval.forecasting import MixtureForecast
 
 
 def test_normalized_weights_rescales_component_axis() -> None:
@@ -74,6 +76,21 @@ def test_mean_pairwise_distance_uses_euclidean_component_distance() -> None:
     means = np.array([[[0.0, 0.0], [3.0, 4.0]]])
 
     assert mean_pairwise_distance(means) == pytest.approx(5.0)
+
+
+def test_mixture_diagnostics_returns_serializable_summary() -> None:
+    forecast = MixtureForecast.from_arrays(
+        weights=np.array([[0.5, 0.5], [1.0, 0.0]]),
+        means=np.array([[[0.0], [2.0]], [[1.0], [3.0]]]),
+        stds=np.ones((2, 2, 1)),
+    )
+
+    diagnostics = mixture_diagnostics(forecast)
+    payload = diagnostics.to_dict()
+
+    assert diagnostics.active_components_1pct == 2
+    assert diagnostics.mean_pairwise_distance == pytest.approx(2.0)
+    assert payload["std"]["mean"] == pytest.approx(1.0)
 
 
 def test_rejects_invalid_weights() -> None:

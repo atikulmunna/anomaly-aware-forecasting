@@ -2,12 +2,60 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 import numpy as np
 from numpy.typing import ArrayLike
 
 from aaf.data.synthetic import FloatArray
+from aaf.eval.forecasting import MixtureForecast
 
 _EPS = 1e-12
+
+
+@dataclass(frozen=True)
+class MixtureDiagnostics:
+    entropy_mean: float
+    entropy_min: float
+    entropy_max: float
+    normalized_entropy_mean: float
+    component_mean_weights: list[float]
+    active_components_1pct: int
+    effective_components: float
+    std: dict[str, float]
+    mean_pairwise_distance: float
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "entropy_mean": self.entropy_mean,
+            "entropy_min": self.entropy_min,
+            "entropy_max": self.entropy_max,
+            "normalized_entropy_mean": self.normalized_entropy_mean,
+            "component_mean_weights": self.component_mean_weights,
+            "active_components_1pct": self.active_components_1pct,
+            "effective_components": self.effective_components,
+            "std": self.std,
+            "mean_pairwise_distance": self.mean_pairwise_distance,
+        }
+
+
+def mixture_diagnostics(forecast: MixtureForecast) -> MixtureDiagnostics:
+    """Return aggregate diagnostics for a Gaussian mixture forecast."""
+
+    forecast.validate()
+    entropy = mixture_entropy_values(forecast.weights)
+    normalized_entropy = normalized_mixture_entropy_values(forecast.weights)
+    return MixtureDiagnostics(
+        entropy_mean=float(np.mean(entropy)),
+        entropy_min=float(np.min(entropy)),
+        entropy_max=float(np.max(entropy)),
+        normalized_entropy_mean=float(np.mean(normalized_entropy)),
+        component_mean_weights=component_mean_weights(forecast.weights).tolist(),
+        active_components_1pct=active_component_count(forecast.weights, threshold=0.01),
+        effective_components=effective_component_count(forecast.weights),
+        std=std_summary(forecast.stds),
+        mean_pairwise_distance=mean_pairwise_distance(forecast.means),
+    )
 
 
 def normalized_weights(weights: ArrayLike) -> FloatArray:
