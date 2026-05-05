@@ -35,6 +35,7 @@ def test_run_mdn_synthetic_writes_training_and_evaluation_artifacts(tmp_path) ->
         "model.pt",
         "standardizer.npz",
         "forecast.npz",
+        "mixture_diagnostics.json",
         "anomaly_validation.npz",
         "anomaly_test.npz",
         "regime.npz",
@@ -47,6 +48,8 @@ def test_run_mdn_synthetic_writes_training_and_evaluation_artifacts(tmp_path) ->
     history = json.loads((tmp_path / "training_history.json").read_text(encoding="utf-8"))
     assert len(history["train_loss"]) == 2
     assert len(history["validation_loss"]) == 2
+    diagnostics = json.loads((tmp_path / "mixture_diagnostics.json").read_text(encoding="utf-8"))
+    assert set(diagnostics) == {"test", "validation"}
 
 
 def test_run_mdn_synthetic_forecast_artifact_matches_contract(tmp_path) -> None:

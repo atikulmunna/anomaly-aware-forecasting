@@ -26,6 +26,7 @@ from aaf.data.synthetic import (
     generate_switching_ar,
     sample_config_split,
 )
+from aaf.eval.artifacts import write_mixture_diagnostics_json
 from aaf.eval.forecasting import MixtureForecast, negative_log_likelihood_values
 from aaf.eval.report import EvaluationReport, evaluate_run_directory
 from aaf.models.mdn_lstm import MDNLSTMConfig
@@ -115,6 +116,11 @@ def run_mdn_synthetic(
     )
     np.savez(output_dir / "standardizer.npz", mean=standardizer.mean, std=standardizer.std)
     _write_forecast_artifact(output_dir / "forecast.npz", test_dataset.targets, test_forecast)
+    write_mixture_diagnostics_json(
+        output_dir / "mixture_diagnostics.json",
+        validation=validation_forecast,
+        test=test_forecast,
+    )
     _write_anomaly_artifact(
         output_dir / "anomaly_validation.npz",
         validation_dataset,
