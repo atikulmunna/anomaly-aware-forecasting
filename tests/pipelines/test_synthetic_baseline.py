@@ -32,6 +32,7 @@ def test_run_synthetic_baseline_writes_evaluation_artifacts(tmp_path) -> None:
         "config.json",
         "standardizer.npz",
         "forecast.npz",
+        "mixture_diagnostics.json",
         "anomaly_validation.npz",
         "anomaly_test.npz",
         "regime.npz",
@@ -41,6 +42,8 @@ def test_run_synthetic_baseline_writes_evaluation_artifacts(tmp_path) -> None:
     assert report.forecast is not None
     assert report.anomaly is not None
     assert report.regime is not None
+    diagnostics = json.loads((tmp_path / "mixture_diagnostics.json").read_text(encoding="utf-8"))
+    assert set(diagnostics) == {"test", "validation"}
 
 
 def test_run_synthetic_baseline_artifacts_match_expected_shapes(tmp_path) -> None:
