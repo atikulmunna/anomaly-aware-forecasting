@@ -65,3 +65,23 @@ def effective_component_count(weights: ArrayLike) -> float:
     means = component_mean_weights(weights)
     entropy = float(mixture_entropy_values(means))
     return float(np.exp(entropy))
+
+
+def std_summary(stds: ArrayLike) -> dict[str, float]:
+    """Summarize predicted component standard deviations."""
+
+    values = np.asarray(stds, dtype=np.float64)
+    if values.ndim < 1:
+        raise ValueError("stds must have at least one dimension")
+    if np.any(~np.isfinite(values)):
+        raise ValueError("stds must be finite")
+    if np.any(values <= 0.0):
+        raise ValueError("stds must be strictly positive")
+    return {
+        "min": float(np.min(values)),
+        "p05": float(np.quantile(values, 0.05)),
+        "median": float(np.median(values)),
+        "mean": float(np.mean(values)),
+        "p95": float(np.quantile(values, 0.95)),
+        "max": float(np.max(values)),
+    }

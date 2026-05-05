@@ -10,6 +10,7 @@ from aaf.eval.diagnostics import (
     mixture_entropy_values,
     normalized_mixture_entropy_values,
     normalized_weights,
+    std_summary,
 )
 
 
@@ -48,6 +49,20 @@ def test_effective_component_count_is_one_for_collapsed_weights() -> None:
     weights = np.array([[1.0, 0.0, 0.0], [1.0, 0.0, 0.0]])
 
     assert effective_component_count(weights) == pytest.approx(1.0)
+
+
+def test_std_summary_reports_distribution_statistics() -> None:
+    summary = std_summary(np.array([1.0, 2.0, 3.0]))
+
+    assert summary["min"] == pytest.approx(1.0)
+    assert summary["median"] == pytest.approx(2.0)
+    assert summary["mean"] == pytest.approx(2.0)
+    assert summary["max"] == pytest.approx(3.0)
+
+
+def test_std_summary_rejects_non_positive_stds() -> None:
+    with pytest.raises(ValueError, match="strictly positive"):
+        std_summary(np.array([1.0, 0.0]))
 
 
 def test_rejects_invalid_weights() -> None:
