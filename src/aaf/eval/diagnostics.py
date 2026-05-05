@@ -41,3 +41,27 @@ def normalized_mixture_entropy_values(weights: ArrayLike) -> FloatArray:
     if n_components == 1:
         return np.zeros(probs.shape[:-1], dtype=np.float64)
     return np.asarray(mixture_entropy_values(probs) / np.log(n_components), dtype=np.float64)
+
+
+def component_mean_weights(weights: ArrayLike) -> FloatArray:
+    """Return mean assignment probability per component."""
+
+    probs = normalized_weights(weights)
+    flat = probs.reshape(-1, probs.shape[-1])
+    return np.asarray(np.mean(flat, axis=0), dtype=np.float64)
+
+
+def active_component_count(weights: ArrayLike, *, threshold: float = 0.01) -> int:
+    """Count components whose average assignment probability exceeds a threshold."""
+
+    if not 0.0 <= threshold <= 1.0:
+        raise ValueError("threshold must be in [0, 1]")
+    return int(np.sum(component_mean_weights(weights) >= threshold))
+
+
+def effective_component_count(weights: ArrayLike) -> float:
+    """Return exp(entropy(mean component weights))."""
+
+    means = component_mean_weights(weights)
+    entropy = float(mixture_entropy_values(means))
+    return float(np.exp(entropy))

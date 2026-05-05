@@ -4,6 +4,9 @@ import numpy as np
 import pytest
 
 from aaf.eval.diagnostics import (
+    active_component_count,
+    component_mean_weights,
+    effective_component_count,
     mixture_entropy_values,
     normalized_mixture_entropy_values,
     normalized_weights,
@@ -26,6 +29,25 @@ def test_normalized_entropy_is_zero_for_single_component() -> None:
     entropy = normalized_mixture_entropy_values(np.ones((2, 1)))
 
     assert entropy.tolist() == [0.0, 0.0]
+
+
+def test_component_mean_weights_average_over_forecasts() -> None:
+    weights = np.array([[1.0, 0.0], [0.5, 0.5]])
+
+    assert component_mean_weights(weights).tolist() == [0.75, 0.25]
+
+
+def test_active_component_count_uses_mean_assignment_threshold() -> None:
+    weights = np.array([[0.99, 0.01, 0.0], [0.99, 0.01, 0.0]])
+
+    assert active_component_count(weights, threshold=0.01) == 2
+    assert active_component_count(weights, threshold=0.02) == 1
+
+
+def test_effective_component_count_is_one_for_collapsed_weights() -> None:
+    weights = np.array([[1.0, 0.0, 0.0], [1.0, 0.0, 0.0]])
+
+    assert effective_component_count(weights) == pytest.approx(1.0)
 
 
 def test_rejects_invalid_weights() -> None:
