@@ -187,10 +187,6 @@ def main(argv: Sequence[str] | None = None) -> int:
     return 0
 
 
-if __name__ == "__main__":
-    raise SystemExit(main())
-
-
 def _build_datasets(
     config: MDNSyntheticConfig,
 ) -> tuple[WindowedDataset, WindowedDataset, WindowedDataset, Standardizer]:
@@ -328,3 +324,7 @@ def _json_ready(value: Any) -> Any:
     if isinstance(value, list | tuple):
         return [_json_ready(item) for item in value]
     return value
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
