@@ -19,6 +19,7 @@ from aaf.eval.anomaly import (
     select_threshold_by_range_f1,
     threshold_scores,
 )
+from aaf.eval.diagnostics import MixtureDiagnostics, mixture_diagnostics
 from aaf.eval.forecasting import (
     MixtureForecast,
     central_interval_coverage,
@@ -46,6 +47,7 @@ class ForecastReport:
     mae: float
     rmse: float
     interval_coverage_90: float
+    diagnostics: MixtureDiagnostics
 
 
 @dataclass(frozen=True)
@@ -97,6 +99,7 @@ def evaluate_forecast(
         mae=mean_absolute_error(observed, forecast),
         rmse=root_mean_squared_error(observed, forecast),
         interval_coverage_90=central_interval_coverage(observed, forecast, level=0.9),
+        diagnostics=mixture_diagnostics(forecast),
     )
 
 

@@ -27,6 +27,7 @@ def test_evaluate_forecast_returns_expected_point_metrics() -> None:
     assert report.nll > 0.0
     assert report.channelwise_crps > 0.0
     assert report.energy_score > 0.0
+    assert report.diagnostics.active_components_1pct == 1
 
 
 def test_evaluate_anomaly_freezes_validation_threshold_for_test() -> None:
@@ -90,6 +91,7 @@ def test_evaluate_run_directory_writes_metrics_json(tmp_path) -> None:
     assert report.anomaly is not None
     assert report.regime is not None
     assert saved["forecast"]["nll"] == pytest.approx(report.forecast.nll)
+    assert saved["forecast"]["diagnostics"]["active_components_1pct"] == 1
     assert saved["anomaly"]["threshold"] == pytest.approx(0.7)
     assert saved["regime"]["adjusted_rand_index"] == pytest.approx(1.0)
 
