@@ -65,3 +65,31 @@ def supervised_regime_loss(regime_logits: Tensor, regime_labels: Tensor) -> Tens
         regime_logits.reshape(-1, regime_logits.shape[-1]),
         regime_labels.reshape(-1).long(),
     )
+
+
+def joint_loss(
+    target: Tensor,
+    output: JointOutput,
+    config: JointLossConfig,
+    *,
+    regime_labels: Tensor | None = None,
+) -> tuple[Tensor, JointLossComponents]:
+    """Return total joint loss and detached scalar components."""
+
+    config.validate()
+    forecast = forecast_nll_loss(target, output)
+    smoothness = regime_smoothness_loss(output.regime_logits)
+    supervised = forecast * 0.0
+    if regime_labels is not None and config.supervised_regime_weight > 0.0:
+        supervised = supervised_regime_loss(output.regime_logits, regime_labels)
+    total = (
+        forecast
+        + config.smoothness_weight * smoothness
+        + config.supervised_regime_weight * supervised
+    )
+    return total, JointLossComponents(
+        total=float(total.detach().cpu()),
+        forecast_nll=float(forecast.detach().cpu()),
+        smoothness=float(smoothness.detach().cpu()),
+        supervised_regime=float(supervised.detach().cpu()),
+    )

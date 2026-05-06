@@ -7,6 +7,7 @@ from aaf.models.joint_loss import (  # noqa: E402
     JointLossComponents,
     JointLossConfig,
     forecast_nll_loss,
+    joint_loss,
     regime_smoothness_loss,
     supervised_regime_loss,
 )
@@ -71,3 +72,25 @@ def test_supervised_regime_loss_is_small_for_correct_confident_logits() -> None:
 def test_supervised_regime_loss_rejects_bad_label_shape() -> None:
     with pytest.raises(ValueError, match="regime_labels"):
         supervised_regime_loss(torch.zeros(2, 3, 4), torch.zeros(2, dtype=torch.long))
+
+
+def test_joint_loss_combines_forecast_smoothness_and_supervision() -> None:
+    output = JointOutput(
+        forecast=MixtureParams(
+            logits=torch.zeros(1, 2, 1, 1),
+            means=torch.zeros(1, 2, 1, 1, 1),
+            raw_stds=torch.zeros(1, 2, 1, 1, 1),
+        ),
+        regime_logits=torch.zeros(1, 2, 2),
+    )
+    target = torch.zeros(1, 2, 1, 1)
+
+    total, components = joint_loss(
+        target,
+        output,
+        JointLossConfig(smoothness_weight=0.1, supervised_regime_weight=0.5),
+        regime_labels=torch.zeros(1, 2, dtype=torch.long),
+    )
+
+    assert torch.isfinite(total)
+    assert components.total >= components.forecast_nll
