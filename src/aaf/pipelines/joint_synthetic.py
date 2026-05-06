@@ -26,6 +26,7 @@ from aaf.data.synthetic import (
 )
 from aaf.eval.forecasting import MixtureForecast, negative_log_likelihood_values
 from aaf.models.joint import JointMDNLSTMConfig
+from aaf.models.joint_loss import JointLossConfig
 from aaf.train.joint_loop import JointPrediction
 
 
@@ -122,6 +123,15 @@ def joint_model_config(config: JointSyntheticConfig) -> JointMDNLSTMConfig:
         num_layers=config.num_layers,
         horizon=config.horizon,
         n_components=config.n_components,
+    )
+
+
+def joint_loss_config(config: JointSyntheticConfig) -> JointLossConfig:
+    """Create the joint objective configuration for a pipeline run."""
+
+    return JointLossConfig(
+        smoothness_weight=config.smoothness_weight,
+        supervised_regime_weight=config.supervised_regime_weight,
     )
 
 

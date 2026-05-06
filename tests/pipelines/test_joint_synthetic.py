@@ -7,6 +7,7 @@ from aaf.eval.forecasting import MixtureForecast
 from aaf.pipelines.joint_synthetic import (
     JointSyntheticConfig,
     build_joint_synthetic_datasets,
+    joint_loss_config,
     joint_model_config,
     write_joint_anomaly_artifact,
     write_joint_config_artifact,
@@ -59,6 +60,15 @@ def test_joint_model_config_matches_pipeline_dimensions() -> None:
     assert model_config.n_regimes == 4
     assert model_config.hidden_size == 9
     assert model_config.n_components == 5
+
+
+def test_joint_loss_config_uses_pipeline_weights() -> None:
+    config = JointSyntheticConfig(smoothness_weight=0.25, supervised_regime_weight=0.5)
+
+    loss_config = joint_loss_config(config)
+
+    assert loss_config.smoothness_weight == 0.25
+    assert loss_config.supervised_regime_weight == 0.5
 
 
 def test_joint_artifact_writers_emit_expected_npz_files(tmp_path) -> None:
