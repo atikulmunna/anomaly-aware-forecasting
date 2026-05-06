@@ -3,7 +3,10 @@ import pytest
 torch = pytest.importorskip("torch", exc_type=ImportError)
 
 from aaf.models.joint import JointMDNLSTMConfig, JointMDNLSTMForecaster, JointOutput  # noqa: E402
-from aaf.models.mixture import MixtureParams  # noqa: E402
+from aaf.models.mixture import (  # noqa: E402
+    MixtureParams,  # noqa: E402
+    mixture_nll,  # noqa: E402
+)
 
 
 def test_joint_output_validates_matching_batch_time_dimensions() -> None:
@@ -104,3 +107,29 @@ def test_joint_model_rejects_bad_regime_logit_override_shape() -> None:
 
     with pytest.raises(ValueError, match="override"):
         model(torch.zeros(2, 5, 1), regime_logits_override=torch.zeros(2, 4, 2))
+
+
+def test_forecast_nll_depends_on_regime_logits() -> None:
+    model = JointMDNLSTMForecaster(
+        JointMDNLSTMConfig(
+            input_size=1,
+            output_size=1,
+            n_regimes=2,
+            hidden_size=8,
+            num_layers=1,
+            horizon=1,
+            n_components=2,
+        )
+    )
+    history = torch.randn(4, 6, 1)
+    target = torch.randn(4, 1, 1, 1)
+    baseline = model.forecast_last(history)
+    override = baseline.regime_logits.repeat(1, history.shape[1], 1)
+    override = override.clone()
+    override[..., 0] += 10.0
+    perturbed = model.forecast_last(history, regime_logits_override=override)
+
+    baseline_nll = mixture_nll(target, baseline.forecast)
+    perturbed_nll = mixture_nll(target, perturbed.forecast)
+
+    assert torch.abs(perturbed_nll - baseline_nll).item() > 1e-6
