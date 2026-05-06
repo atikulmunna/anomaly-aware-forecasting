@@ -51,3 +51,23 @@ def test_joint_model_initializes_regime_and_forecast_heads() -> None:
 
     assert model.regime_head.out_features == 3
     assert model.logit_head.in_features == 11
+
+
+def test_joint_model_forward_shapes() -> None:
+    model = JointMDNLSTMForecaster(
+        JointMDNLSTMConfig(
+            input_size=2,
+            output_size=2,
+            n_regimes=3,
+            hidden_size=8,
+            num_layers=1,
+            horizon=2,
+            n_components=4,
+        )
+    )
+
+    output = model(torch.zeros(5, 7, 2))
+
+    assert tuple(output.regime_logits.shape) == (5, 7, 3)
+    assert tuple(output.forecast.logits.shape) == (5, 7, 2, 4)
+    assert tuple(output.forecast.means.shape) == (5, 7, 2, 4, 2)

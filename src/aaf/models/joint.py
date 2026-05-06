@@ -6,6 +6,7 @@ from dataclasses import dataclass
 
 import torch
 from torch import Tensor, nn
+from torch.nn import functional as F
 
 from aaf.models.mixture import MixtureParams
 
@@ -87,3 +88,51 @@ class JointMDNLSTMForecaster(nn.Module):
             forecast_input_size,
             config.horizon * config.n_components * config.output_size,
         )
+
+    def forward(self, history: Tensor, regime_logits_override: Tensor | None = None) -> JointOutput:
+        """Return forecast mixture parameters and regime logits for every timestep."""
+
+        if history.ndim != 3:
+            raise ValueError("history must have shape (B, T, input_size)")
+        if history.shape[-1] != self.config.input_size:
+            raise ValueError("history feature dimension must match input_size")
+        if not torch.isfinite(history).all():
+            raise ValueError("history must be finite")
+
+        hidden, _ = self.backbone(history)
+        regime_logits = self.regime_head(hidden)
+        if regime_logits_override is not None:
+            if regime_logits_override.shape != regime_logits.shape:
+                raise ValueError("regime_logits_override must match regime logits shape")
+            regime_logits = regime_logits_override
+        forecast_input = torch.cat([hidden, F.softmax(regime_logits, dim=-1)], dim=-1)
+        output = JointOutput(
+            forecast=self._forecast_from_conditioned_hidden(forecast_input),
+            regime_logits=regime_logits,
+        )
+        output.validate()
+        return output
+
+    def _forecast_from_conditioned_hidden(self, hidden: Tensor) -> MixtureParams:
+        batch_size, sequence_length, _ = hidden.shape
+        logits = self.logit_head(hidden).reshape(
+            batch_size,
+            sequence_length,
+            self.config.horizon,
+            self.config.n_components,
+        )
+        means = self.mean_head(hidden).reshape(
+            batch_size,
+            sequence_length,
+            self.config.horizon,
+            self.config.n_components,
+            self.config.output_size,
+        )
+        raw_stds = self.std_head(hidden).reshape(
+            batch_size,
+            sequence_length,
+            self.config.horizon,
+            self.config.n_components,
+            self.config.output_size,
+        )
+        return MixtureParams(logits=logits, means=means, raw_stds=raw_stds)
