@@ -25,6 +25,7 @@ from aaf.data.synthetic import (
     generate_switching_ar,
     sample_config_split,
 )
+from aaf.eval.artifacts import write_mixture_diagnostics_json, write_regime_diagnostics_json
 from aaf.eval.forecasting import MixtureForecast, negative_log_likelihood_values
 from aaf.models.joint import JointMDNLSTMConfig
 from aaf.models.joint_loss import JointLossConfig
@@ -214,6 +215,43 @@ def write_joint_training_artifacts(
         output_dir / "model.pt",
     )
     np.savez(output_dir / "standardizer.npz", mean=standardizer.mean, std=standardizer.std)
+
+
+def write_joint_evaluation_artifacts(
+    output_dir: Path,
+    *,
+    validation_dataset: WindowedDataset,
+    test_dataset: WindowedDataset,
+    validation_prediction: JointPrediction,
+    test_prediction: JointPrediction,
+) -> None:
+    """Write forecast, anomaly, regime, and diagnostic artifacts."""
+
+    write_joint_forecast_artifact(
+        output_dir / "forecast.npz",
+        test_dataset.targets,
+        test_prediction.forecast,
+    )
+    write_joint_anomaly_artifact(
+        output_dir / "anomaly_validation.npz",
+        validation_dataset,
+        validation_prediction.forecast,
+    )
+    write_joint_anomaly_artifact(
+        output_dir / "anomaly_test.npz",
+        test_dataset,
+        test_prediction.forecast,
+    )
+    write_joint_regime_artifact(output_dir / "regime.npz", test_dataset, test_prediction)
+    write_mixture_diagnostics_json(
+        output_dir / "mixture_diagnostics.json",
+        validation=validation_prediction.forecast,
+        test=test_prediction.forecast,
+    )
+    write_regime_diagnostics_json(
+        output_dir / "regime_diagnostics.json",
+        posterior_probs=test_prediction.regime_probs,
+    )
 
 
 def _generate_series(

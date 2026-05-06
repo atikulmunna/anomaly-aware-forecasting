@@ -15,6 +15,7 @@ from aaf.pipelines.joint_synthetic import (
     train_joint_synthetic_model,
     write_joint_anomaly_artifact,
     write_joint_config_artifact,
+    write_joint_evaluation_artifacts,
     write_joint_forecast_artifact,
     write_joint_regime_artifact,
     write_joint_training_artifacts,
@@ -182,6 +183,49 @@ def test_write_joint_training_artifacts_creates_core_files(tmp_path) -> None:
     assert (tmp_path / "training_history.json").exists()
     assert (tmp_path / "model.pt").exists()
     assert (tmp_path / "standardizer.npz").exists()
+
+
+def test_write_joint_evaluation_artifacts_creates_metric_inputs(tmp_path) -> None:
+    config = JointSyntheticConfig(
+        seed=15,
+        n_train_configs=1,
+        n_validation_configs=1,
+        n_test_configs=1,
+        series_length=80,
+        burn_in=10,
+        lookback=8,
+        stride=4,
+        hidden_size=6,
+        n_components=2,
+        epochs=1,
+        batch_size=8,
+        learning_rate=0.01,
+    )
+    train, validation, test, _standardizer = build_joint_synthetic_datasets(config)
+    result = train_joint_synthetic_model(train, validation, config)
+    validation_prediction, test_prediction = predict_joint_synthetic_splits(
+        result,
+        validation,
+        test,
+    )
+
+    write_joint_evaluation_artifacts(
+        tmp_path,
+        validation_dataset=validation,
+        test_dataset=test,
+        validation_prediction=validation_prediction,
+        test_prediction=test_prediction,
+    )
+
+    expected = {
+        "forecast.npz",
+        "anomaly_validation.npz",
+        "anomaly_test.npz",
+        "regime.npz",
+        "mixture_diagnostics.json",
+        "regime_diagnostics.json",
+    }
+    assert expected.issubset({path.name for path in tmp_path.iterdir()})
 
 
 def test_joint_artifact_writers_emit_expected_npz_files(tmp_path) -> None:
