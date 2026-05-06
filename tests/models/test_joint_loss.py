@@ -7,6 +7,7 @@ from aaf.models.joint_loss import (  # noqa: E402
     JointLossComponents,
     JointLossConfig,
     forecast_nll_loss,
+    regime_smoothness_loss,
 )
 from aaf.models.mixture import MixtureParams  # noqa: E402
 
@@ -43,3 +44,17 @@ def test_forecast_nll_loss_delegates_to_mixture_nll() -> None:
     target = torch.zeros(1, 1, 1, 1)
 
     assert forecast_nll_loss(target, output).item() > 0.0
+
+
+def test_regime_smoothness_loss_is_zero_for_constant_logits() -> None:
+    logits = torch.zeros(2, 4, 3)
+
+    assert regime_smoothness_loss(logits).item() == pytest.approx(0.0)
+
+
+def test_regime_smoothness_loss_is_positive_for_changes() -> None:
+    logits = torch.zeros(1, 2, 2)
+    logits[:, 0, 0] = 5.0
+    logits[:, 1, 1] = 5.0
+
+    assert regime_smoothness_loss(logits).item() > 0.0

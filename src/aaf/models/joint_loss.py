@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from torch import Tensor
+from torch.nn import functional as F
 
 from aaf.models.joint import JointOutput
 from aaf.models.mixture import mixture_nll
@@ -34,3 +35,20 @@ def forecast_nll_loss(target: Tensor, output: JointOutput) -> Tensor:
     """Return forecast NLL for a joint output."""
 
     return mixture_nll(target, output.forecast)
+
+
+def regime_smoothness_loss(regime_logits: Tensor) -> Tensor:
+    """Return mean KL(q_t || q_{t-1}) across adjacent timesteps."""
+
+    if regime_logits.ndim != 3:
+        raise ValueError("regime_logits must have shape (B, T, K)")
+    if regime_logits.shape[1] < 2:
+        return regime_logits.sum() * 0.0
+    log_probs = F.log_softmax(regime_logits, dim=-1)
+    probs = log_probs.exp()
+    return F.kl_div(
+        log_probs[:, :-1, :],
+        probs[:, 1:, :],
+        reduction="batchmean",
+        log_target=False,
+    )
