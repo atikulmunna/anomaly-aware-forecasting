@@ -82,3 +82,25 @@ def test_joint_model_forecast_last_keeps_single_time_dimension() -> None:
 
     assert tuple(output.regime_logits.shape) == (3, 1, 2)
     assert tuple(output.forecast.logits.shape) == (3, 1, 1, 3)
+
+
+def test_joint_model_accepts_regime_logit_override() -> None:
+    model = JointMDNLSTMForecaster(
+        JointMDNLSTMConfig(input_size=1, output_size=1, n_regimes=2, hidden_size=4, num_layers=1)
+    )
+    history = torch.zeros(2, 5, 1)
+    override = torch.zeros(2, 5, 2)
+    override[..., 1] = 5.0
+
+    output = model(history, regime_logits_override=override)
+
+    assert torch.allclose(output.regime_logits, override)
+
+
+def test_joint_model_rejects_bad_regime_logit_override_shape() -> None:
+    model = JointMDNLSTMForecaster(
+        JointMDNLSTMConfig(input_size=1, output_size=1, n_regimes=2, hidden_size=4, num_layers=1)
+    )
+
+    with pytest.raises(ValueError, match="override"):
+        model(torch.zeros(2, 5, 1), regime_logits_override=torch.zeros(2, 4, 2))
