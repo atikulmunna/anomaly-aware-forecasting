@@ -23,6 +23,7 @@ from aaf.data.synthetic import (
     sample_config_split,
 )
 from aaf.eval.forecasting import MixtureForecast, negative_log_likelihood_values
+from aaf.train.joint_loop import JointPrediction
 
 
 @dataclass(frozen=True)
@@ -188,3 +189,18 @@ def write_joint_anomaly_artifact(
 
     scores = np.mean(negative_log_likelihood_values(dataset.targets, forecast), axis=-1)
     np.savez(path, scores=scores, labels=dataset.anomaly_labels)
+
+
+def write_joint_regime_artifact(
+    path: Path,
+    dataset: WindowedDataset,
+    prediction: JointPrediction,
+) -> None:
+    """Write regime labels and posterior probabilities for evaluation."""
+
+    np.savez(
+        path,
+        true_labels=dataset.regime_labels,
+        pred_labels=prediction.regime_labels,
+        posterior_probs=prediction.regime_probs,
+    )
