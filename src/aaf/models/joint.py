@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import torch
-from torch import Tensor
+from torch import Tensor, nn
 
 from aaf.models.mixture import MixtureParams
 
@@ -59,3 +59,31 @@ class JointOutput:
     @property
     def regime_probs(self) -> Tensor:
         return torch.softmax(self.regime_logits, dim=-1)
+
+
+class JointMDNLSTMForecaster(nn.Module):
+    """MDN-LSTM forecaster with an explicit regime head."""
+
+    def __init__(self, config: JointMDNLSTMConfig) -> None:
+        super().__init__()
+        config.validate()
+        self.config = config
+        lstm_dropout = config.dropout if config.num_layers > 1 else 0.0
+        self.backbone = nn.LSTM(
+            input_size=config.input_size,
+            hidden_size=config.hidden_size,
+            num_layers=config.num_layers,
+            dropout=lstm_dropout,
+            batch_first=True,
+        )
+        self.regime_head = nn.Linear(config.hidden_size, config.n_regimes)
+        forecast_input_size = config.hidden_size + config.n_regimes
+        self.logit_head = nn.Linear(forecast_input_size, config.horizon * config.n_components)
+        self.mean_head = nn.Linear(
+            forecast_input_size,
+            config.horizon * config.n_components * config.output_size,
+        )
+        self.std_head = nn.Linear(
+            forecast_input_size,
+            config.horizon * config.n_components * config.output_size,
+        )

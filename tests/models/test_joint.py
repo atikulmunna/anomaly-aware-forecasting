@@ -2,7 +2,7 @@ import pytest
 
 torch = pytest.importorskip("torch", exc_type=ImportError)
 
-from aaf.models.joint import JointMDNLSTMConfig, JointOutput  # noqa: E402
+from aaf.models.joint import JointMDNLSTMConfig, JointMDNLSTMForecaster, JointOutput  # noqa: E402
 from aaf.models.mixture import MixtureParams  # noqa: E402
 
 
@@ -42,3 +42,12 @@ def test_joint_config_accepts_valid_dimensions() -> None:
 def test_joint_config_rejects_single_regime() -> None:
     with pytest.raises(ValueError, match="at least 2"):
         JointMDNLSTMConfig(input_size=1, output_size=1, n_regimes=1).validate()
+
+
+def test_joint_model_initializes_regime_and_forecast_heads() -> None:
+    model = JointMDNLSTMForecaster(
+        JointMDNLSTMConfig(input_size=2, output_size=2, n_regimes=3, hidden_size=8)
+    )
+
+    assert model.regime_head.out_features == 3
+    assert model.logit_head.in_features == 11
