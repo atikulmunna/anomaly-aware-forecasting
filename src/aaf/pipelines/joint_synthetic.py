@@ -181,6 +181,14 @@ def predict_joint_synthetic_splits(
     )
 
 
+def prepare_joint_output_dir(output_dir: Path, *, overwrite: bool = False) -> None:
+    """Create or validate the output directory for a joint synthetic run."""
+
+    if output_dir.exists() and any(output_dir.iterdir()) and not overwrite:
+        raise FileExistsError(f"output directory is not empty: {output_dir}")
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+
 def _generate_series(
     configs: tuple[SwitchingARConfig, ...],
     *,

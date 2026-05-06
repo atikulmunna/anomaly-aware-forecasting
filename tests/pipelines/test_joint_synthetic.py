@@ -11,6 +11,7 @@ from aaf.pipelines.joint_synthetic import (
     joint_model_config,
     joint_training_config,
     predict_joint_synthetic_splits,
+    prepare_joint_output_dir,
     train_joint_synthetic_model,
     write_joint_anomaly_artifact,
     write_joint_config_artifact,
@@ -138,6 +139,15 @@ def test_predict_joint_synthetic_splits_returns_forecasts_and_regimes() -> None:
     assert validation_prediction.forecast.weights.shape[0] == len(validation)
     assert test_prediction.forecast.weights.shape[0] == len(test)
     assert validation_prediction.regime_probs.shape == validation.regime_labels.shape + (3,)
+
+
+def test_prepare_joint_output_dir_rejects_existing_files_without_overwrite(tmp_path) -> None:
+    (tmp_path / "existing.txt").write_text("keep", encoding="utf-8")
+
+    with pytest.raises(FileExistsError):
+        prepare_joint_output_dir(tmp_path)
+
+    prepare_joint_output_dir(tmp_path, overwrite=True)
 
 
 def test_joint_artifact_writers_emit_expected_npz_files(tmp_path) -> None:
