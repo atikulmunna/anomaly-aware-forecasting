@@ -1,8 +1,14 @@
 import numpy as np
+import pytest
 
 from aaf.eval.forecasting import MixtureForecast
 from aaf.models.joint import JointMDNLSTMConfig, JointMDNLSTMForecaster
-from aaf.train.joint_loop import JointPrediction, JointTrainingResult, to_joint_tensor_dataset
+from aaf.train.joint_loop import (
+    JointPrediction,
+    JointTrainingResult,
+    to_joint_tensor_dataset,
+    validate_joint_dataset_matches_model,
+)
 from aaf.train.loop import TrainingHistory
 from tests.train.test_loop import make_linear_dataset
 
@@ -41,3 +47,18 @@ def test_to_joint_tensor_dataset_includes_regime_labels() -> None:
     assert tuple(windows.shape) == (6, 1)
     assert tuple(targets.shape) == (1, 1)
     assert regime_labels.item() == 0
+
+
+def test_validate_joint_dataset_matches_model_accepts_compatible_data() -> None:
+    validate_joint_dataset_matches_model(
+        make_linear_dataset(),
+        JointMDNLSTMConfig(input_size=1, output_size=1, n_regimes=2),
+    )
+
+
+def test_validate_joint_dataset_rejects_bad_horizon() -> None:
+    with pytest.raises(ValueError, match="horizon"):
+        validate_joint_dataset_matches_model(
+            make_linear_dataset(horizon=2),
+            JointMDNLSTMConfig(input_size=1, output_size=1, n_regimes=2, horizon=1),
+        )
