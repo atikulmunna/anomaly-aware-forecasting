@@ -10,6 +10,7 @@ from aaf.pipelines.joint_synthetic import (
     joint_loss_config,
     joint_model_config,
     joint_training_config,
+    predict_joint_synthetic_splits,
     train_joint_synthetic_model,
     write_joint_anomaly_artifact,
     write_joint_config_artifact,
@@ -107,6 +108,36 @@ def test_train_joint_synthetic_model_returns_history() -> None:
 
     assert len(result.history.train_loss) == 1
     assert len(result.history.validation_loss) == 1
+
+
+def test_predict_joint_synthetic_splits_returns_forecasts_and_regimes() -> None:
+    config = JointSyntheticConfig(
+        seed=13,
+        n_train_configs=1,
+        n_validation_configs=1,
+        n_test_configs=1,
+        series_length=80,
+        burn_in=10,
+        lookback=8,
+        stride=4,
+        hidden_size=6,
+        n_components=2,
+        epochs=1,
+        batch_size=8,
+        learning_rate=0.01,
+    )
+    train, validation, test, _standardizer = build_joint_synthetic_datasets(config)
+    result = train_joint_synthetic_model(train, validation, config)
+
+    validation_prediction, test_prediction = predict_joint_synthetic_splits(
+        result,
+        validation,
+        test,
+    )
+
+    assert validation_prediction.forecast.weights.shape[0] == len(validation)
+    assert test_prediction.forecast.weights.shape[0] == len(test)
+    assert validation_prediction.regime_probs.shape == validation.regime_labels.shape + (3,)
 
 
 def test_joint_artifact_writers_emit_expected_npz_files(tmp_path) -> None:
