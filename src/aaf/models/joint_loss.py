@@ -52,3 +52,16 @@ def regime_smoothness_loss(regime_logits: Tensor) -> Tensor:
         reduction="batchmean",
         log_target=False,
     )
+
+
+def supervised_regime_loss(regime_logits: Tensor, regime_labels: Tensor) -> Tensor:
+    """Return cross-entropy for supervised synthetic regime labels."""
+
+    if regime_logits.ndim != 3:
+        raise ValueError("regime_logits must have shape (B, T, K)")
+    if regime_labels.shape != regime_logits.shape[:2]:
+        raise ValueError("regime_labels must have shape (B, T)")
+    return F.cross_entropy(
+        regime_logits.reshape(-1, regime_logits.shape[-1]),
+        regime_labels.reshape(-1).long(),
+    )

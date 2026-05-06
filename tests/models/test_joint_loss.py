@@ -8,6 +8,7 @@ from aaf.models.joint_loss import (  # noqa: E402
     JointLossConfig,
     forecast_nll_loss,
     regime_smoothness_loss,
+    supervised_regime_loss,
 )
 from aaf.models.mixture import MixtureParams  # noqa: E402
 
@@ -58,3 +59,15 @@ def test_regime_smoothness_loss_is_positive_for_changes() -> None:
     logits[:, 1, 1] = 5.0
 
     assert regime_smoothness_loss(logits).item() > 0.0
+
+
+def test_supervised_regime_loss_is_small_for_correct_confident_logits() -> None:
+    logits = torch.tensor([[[5.0, 0.0], [0.0, 5.0]]])
+    labels = torch.tensor([[0, 1]])
+
+    assert supervised_regime_loss(logits, labels).item() < 0.01
+
+
+def test_supervised_regime_loss_rejects_bad_label_shape() -> None:
+    with pytest.raises(ValueError, match="regime_labels"):
+        supervised_regime_loss(torch.zeros(2, 3, 4), torch.zeros(2, dtype=torch.long))
