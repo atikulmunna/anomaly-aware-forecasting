@@ -39,6 +39,22 @@ def mean_regime_confidence(probs: ArrayLike) -> float:
     return float(np.mean(regime_confidence_values(probs)))
 
 
+def posterior_argmax_labels(probs: ArrayLike) -> np.ndarray:
+    """Return argmax regime labels from posterior probabilities."""
+
+    values = _posterior_array(probs)
+    return np.asarray(np.argmax(values, axis=-1), dtype=np.int64)
+
+
+def posterior_switch_count(probs: ArrayLike) -> int:
+    """Count argmax regime switches in posterior sequence."""
+
+    labels = posterior_argmax_labels(probs).reshape(-1)
+    if labels.size < 2:
+        return 0
+    return int(np.sum(labels[1:] != labels[:-1]))
+
+
 def _posterior_array(probs: ArrayLike) -> FloatArray:
     values = np.asarray(probs, dtype=np.float64)
     if values.ndim < 2:
