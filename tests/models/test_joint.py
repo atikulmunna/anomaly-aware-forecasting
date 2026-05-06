@@ -71,3 +71,14 @@ def test_joint_model_forward_shapes() -> None:
     assert tuple(output.regime_logits.shape) == (5, 7, 3)
     assert tuple(output.forecast.logits.shape) == (5, 7, 2, 4)
     assert tuple(output.forecast.means.shape) == (5, 7, 2, 4, 2)
+
+
+def test_joint_model_forecast_last_keeps_single_time_dimension() -> None:
+    model = JointMDNLSTMForecaster(
+        JointMDNLSTMConfig(input_size=1, output_size=1, n_regimes=2, hidden_size=4, num_layers=1)
+    )
+
+    output = model.forecast_last(torch.zeros(3, 6, 1))
+
+    assert tuple(output.regime_logits.shape) == (3, 1, 2)
+    assert tuple(output.forecast.logits.shape) == (3, 1, 1, 3)

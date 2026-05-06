@@ -136,3 +136,20 @@ class JointMDNLSTMForecaster(nn.Module):
             self.config.output_size,
         )
         return MixtureParams(logits=logits, means=means, raw_stds=raw_stds)
+
+    def forecast_last(
+        self,
+        history: Tensor,
+        regime_logits_override: Tensor | None = None,
+    ) -> JointOutput:
+        """Return joint outputs for the final history timestep only."""
+
+        output = self(history, regime_logits_override=regime_logits_override)
+        return JointOutput(
+            forecast=MixtureParams(
+                logits=output.forecast.logits[:, -1:, :, :],
+                means=output.forecast.means[:, -1:, :, :, :],
+                raw_stds=output.forecast.raw_stds[:, -1:, :, :, :],
+            ),
+            regime_logits=output.regime_logits[:, -1:, :],
+        )
