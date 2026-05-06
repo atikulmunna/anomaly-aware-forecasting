@@ -167,7 +167,53 @@ def evaluate_joint_mdn_lstm_loss(
     return float(np.mean(losses))
 
 
+def predict_joint_mdn_lstm(
+    model: JointMDNLSTMForecaster,
+    dataset: WindowedDataset,
+    *,
+    batch_size: int = 256,
+    device: str | torch.device = "cpu",
+) -> JointPrediction:
+    """Predict forecast mixture and regime posterior arrays."""
+
+    model.eval()
+    resolved_device = torch.device(device)
+    logits: list[np.ndarray] = []
+    means: list[np.ndarray] = []
+    stds: list[np.ndarray] = []
+    regime_probs: list[np.ndarray] = []
+    with torch.no_grad():
+        for windows, _targets, _regime_labels in DataLoader(
+            to_joint_tensor_dataset(dataset),
+            batch_size=batch_size,
+        ):
+            output = model.forecast_last(windows.to(resolved_device))
+            logits.append(output.forecast.logits[:, 0].cpu().numpy())
+            means.append(output.forecast.means[:, 0].cpu().numpy())
+            stds.append(output.forecast.stds[:, 0].cpu().numpy())
+            regime_probs.append(output.regime_probs[:, 0].cpu().numpy())
+
+    logits_array = np.concatenate(logits, axis=0)
+    weights = _softmax_numpy(logits_array, axis=-1)
+    posterior = np.concatenate(regime_probs, axis=0)
+    return JointPrediction(
+        forecast=MixtureForecast.from_arrays(
+            weights=weights,
+            means=np.concatenate(means, axis=0),
+            stds=np.concatenate(stds, axis=0),
+        ),
+        regime_probs=posterior,
+        regime_labels=np.asarray(np.argmax(posterior, axis=-1), dtype=np.int64),
+    )
+
+
 def _torch_generator(seed: int) -> torch.Generator:
     generator = torch.Generator()
     generator.manual_seed(seed)
     return generator
+
+
+def _softmax_numpy(values: np.ndarray, *, axis: int) -> np.ndarray:
+    shifted = values - np.max(values, axis=axis, keepdims=True)
+    exp_values = np.exp(shifted)
+    return np.asarray(exp_values / np.sum(exp_values, axis=axis, keepdims=True))

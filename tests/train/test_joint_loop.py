@@ -8,6 +8,7 @@ from aaf.train.joint_loop import (
     JointPrediction,
     JointTrainingResult,
     joint_batch_loss,
+    predict_joint_mdn_lstm,
     to_joint_tensor_dataset,
     train_joint_mdn_lstm,
     validate_joint_dataset_matches_model,
@@ -97,3 +98,20 @@ def test_train_joint_mdn_lstm_reduces_loss_on_tiny_sequence() -> None:
     )
 
     assert result.history.train_loss[-1] < result.history.train_loss[0]
+
+
+def test_predict_joint_mdn_lstm_returns_forecast_and_regime_probs() -> None:
+    dataset = make_linear_dataset(n_examples=8)
+    result = train_joint_mdn_lstm(
+        dataset,
+        JointMDNLSTMConfig(input_size=1, output_size=1, n_regimes=2, hidden_size=6, num_layers=1),
+        TrainingConfig(epochs=1, batch_size=4, learning_rate=0.01, seed=17),
+        JointLossConfig(),
+    )
+
+    prediction = predict_joint_mdn_lstm(result.model, dataset, batch_size=4)
+
+    assert prediction.forecast.weights.shape == (8, 1, 3)
+    assert prediction.regime_probs.shape == (8, 2)
+    assert prediction.regime_labels.shape == (8,)
+    assert np.allclose(prediction.regime_probs.sum(axis=-1), 1.0)
