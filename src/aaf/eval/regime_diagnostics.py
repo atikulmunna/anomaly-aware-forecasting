@@ -26,6 +26,19 @@ def normalized_regime_entropy_values(probs: ArrayLike) -> FloatArray:
     return np.asarray(regime_posterior_entropy_values(values) / np.log(values.shape[-1]))
 
 
+def regime_confidence_values(probs: ArrayLike) -> FloatArray:
+    """Return maximum posterior probability at each timestep."""
+
+    values = _posterior_array(probs)
+    return np.asarray(np.max(values, axis=-1), dtype=np.float64)
+
+
+def mean_regime_confidence(probs: ArrayLike) -> float:
+    """Return mean maximum posterior probability."""
+
+    return float(np.mean(regime_confidence_values(probs)))
+
+
 def _posterior_array(probs: ArrayLike) -> FloatArray:
     values = np.asarray(probs, dtype=np.float64)
     if values.ndim < 2:
