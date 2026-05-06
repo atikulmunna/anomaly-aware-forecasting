@@ -10,6 +10,7 @@ from aaf.pipelines.joint_synthetic import (
     joint_loss_config,
     joint_model_config,
     joint_training_config,
+    main,
     predict_joint_synthetic_splits,
     prepare_joint_output_dir,
     run_joint_synthetic,
@@ -266,6 +267,45 @@ def test_run_joint_synthetic_writes_full_run_directory(tmp_path) -> None:
     assert report.forecast is not None
     assert report.anomaly is not None
     assert report.regime is not None
+
+
+def test_joint_synthetic_cli_writes_metrics(tmp_path) -> None:
+    exit_code = main(
+        [
+            str(tmp_path),
+            "--seed",
+            "17",
+            "--series-length",
+            "80",
+            "--lookback",
+            "8",
+            "--stride",
+            "4",
+            "--epochs",
+            "1",
+            "--batch-size",
+            "8",
+            "--hidden-size",
+            "6",
+            "--n-components",
+            "2",
+            "--n-train-configs",
+            "1",
+            "--n-validation-configs",
+            "1",
+            "--n-test-configs",
+            "1",
+            "--smoothness-weight",
+            "0.05",
+            "--supervised-regime-weight",
+            "0.1",
+            "--energy-samples",
+            "16",
+        ]
+    )
+
+    assert exit_code == 0
+    assert (tmp_path / "metrics.json").exists()
 
 
 def test_joint_artifact_writers_emit_expected_npz_files(tmp_path) -> None:

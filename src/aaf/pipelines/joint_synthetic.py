@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import argparse
 import json
+from collections.abc import Sequence
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
@@ -160,6 +162,56 @@ def run_joint_synthetic(
         energy_samples=config.energy_samples,
         seed=config.seed,
     )
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Train a joint MDN-LSTM on synthetic data.")
+    parser.add_argument("output_dir", type=Path)
+    parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--series-length", type=int, default=500)
+    parser.add_argument("--lookback", type=int, default=32)
+    parser.add_argument("--horizon", type=int, default=1)
+    parser.add_argument("--stride", type=int, default=1)
+    parser.add_argument("--epochs", type=int, default=5)
+    parser.add_argument("--batch-size", type=int, default=64)
+    parser.add_argument("--learning-rate", type=float, default=1e-3)
+    parser.add_argument("--hidden-size", type=int, default=32)
+    parser.add_argument("--n-components", type=int, default=3)
+    parser.add_argument("--n-train-configs", type=int, default=4)
+    parser.add_argument("--n-validation-configs", type=int, default=1)
+    parser.add_argument("--n-test-configs", type=int, default=1)
+    parser.add_argument("--smoothness-weight", type=float, default=0.1)
+    parser.add_argument("--supervised-regime-weight", type=float, default=0.0)
+    parser.add_argument("--energy-samples", type=int, default=64)
+    parser.add_argument("--overwrite", action="store_true")
+    return parser
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    args = build_parser().parse_args(argv)
+    run_joint_synthetic(
+        args.output_dir,
+        JointSyntheticConfig(
+            seed=args.seed,
+            n_train_configs=args.n_train_configs,
+            n_validation_configs=args.n_validation_configs,
+            n_test_configs=args.n_test_configs,
+            series_length=args.series_length,
+            lookback=args.lookback,
+            horizon=args.horizon,
+            stride=args.stride,
+            hidden_size=args.hidden_size,
+            n_components=args.n_components,
+            epochs=args.epochs,
+            batch_size=args.batch_size,
+            learning_rate=args.learning_rate,
+            smoothness_weight=args.smoothness_weight,
+            supervised_regime_weight=args.supervised_regime_weight,
+            energy_samples=args.energy_samples,
+        ),
+        overwrite=args.overwrite,
+    )
+    return 0
 
 
 def joint_model_config(config: JointSyntheticConfig) -> JointMDNLSTMConfig:
