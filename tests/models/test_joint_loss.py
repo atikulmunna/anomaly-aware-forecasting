@@ -1,6 +1,14 @@
 import pytest
 
-from aaf.models.joint_loss import JointLossComponents, JointLossConfig
+torch = pytest.importorskip("torch", exc_type=ImportError)
+
+from aaf.models.joint import JointOutput  # noqa: E402
+from aaf.models.joint_loss import (  # noqa: E402
+    JointLossComponents,
+    JointLossConfig,
+    forecast_nll_loss,
+)
+from aaf.models.mixture import MixtureParams  # noqa: E402
 
 
 def test_joint_loss_config_accepts_non_negative_weights() -> None:
@@ -21,3 +29,17 @@ def test_joint_loss_components_is_plain_scalar_container() -> None:
     )
 
     assert components.total == pytest.approx(1.0)
+
+
+def test_forecast_nll_loss_delegates_to_mixture_nll() -> None:
+    output = JointOutput(
+        forecast=MixtureParams(
+            logits=torch.zeros(1, 1, 1, 1),
+            means=torch.zeros(1, 1, 1, 1, 1),
+            raw_stds=torch.zeros(1, 1, 1, 1, 1),
+        ),
+        regime_logits=torch.zeros(1, 1, 2),
+    )
+    target = torch.zeros(1, 1, 1, 1)
+
+    assert forecast_nll_loss(target, output).item() > 0.0

@@ -4,6 +4,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from torch import Tensor
+
+from aaf.models.joint import JointOutput
+from aaf.models.mixture import mixture_nll
+
 
 @dataclass(frozen=True)
 class JointLossConfig:
@@ -23,3 +28,9 @@ class JointLossComponents:
     forecast_nll: float
     smoothness: float
     supervised_regime: float
+
+
+def forecast_nll_loss(target: Tensor, output: JointOutput) -> Tensor:
+    """Return forecast NLL for a joint output."""
+
+    return mixture_nll(target, output.forecast)
