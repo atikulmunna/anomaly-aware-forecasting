@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 
 import numpy as np
 
@@ -21,6 +22,7 @@ from aaf.data.synthetic import (
     generate_switching_ar,
     sample_config_split,
 )
+from aaf.eval.forecasting import MixtureForecast, negative_log_likelihood_values
 
 
 @dataclass(frozen=True)
@@ -159,3 +161,30 @@ def _window_collection(
 
 def _concat_observations(series_collection: tuple[SyntheticSeries, ...]) -> FloatArray:
     return np.concatenate([series.observations for series in series_collection], axis=0)
+
+
+def write_joint_forecast_artifact(
+    path: Path,
+    observed: FloatArray,
+    forecast: MixtureForecast,
+) -> None:
+    """Write forecast artifact compatible with aaf-evaluate."""
+
+    np.savez(
+        path,
+        observed=observed,
+        weights=forecast.weights,
+        means=forecast.means,
+        stds=forecast.stds,
+    )
+
+
+def write_joint_anomaly_artifact(
+    path: Path,
+    dataset: WindowedDataset,
+    forecast: MixtureForecast,
+) -> None:
+    """Write anomaly-score artifact from forecast likelihoods."""
+
+    scores = np.mean(negative_log_likelihood_values(dataset.targets, forecast), axis=-1)
+    np.savez(path, scores=scores, labels=dataset.anomaly_labels)
