@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+import json
+from dataclasses import asdict, dataclass
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 
@@ -204,3 +206,20 @@ def write_joint_regime_artifact(
         pred_labels=prediction.regime_labels,
         posterior_probs=prediction.regime_probs,
     )
+
+
+def write_joint_config_artifact(path: Path, config: JointSyntheticConfig) -> None:
+    """Write the resolved joint synthetic pipeline configuration."""
+
+    path.write_text(
+        json.dumps(_json_ready(asdict(config)), indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
+
+
+def _json_ready(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {str(key): _json_ready(item) for key, item in value.items()}
+    if isinstance(value, list | tuple):
+        return [_json_ready(item) for item in value]
+    return value

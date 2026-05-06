@@ -1,3 +1,5 @@
+import json
+
 import numpy as np
 import pytest
 
@@ -6,6 +8,7 @@ from aaf.pipelines.joint_synthetic import (
     JointSyntheticConfig,
     build_joint_synthetic_datasets,
     write_joint_anomaly_artifact,
+    write_joint_config_artifact,
     write_joint_forecast_artifact,
     write_joint_regime_artifact,
 )
@@ -79,3 +82,13 @@ def test_joint_regime_artifact_writer_includes_posteriors(tmp_path) -> None:
         assert artifact["true_labels"].shape == validation.regime_labels.shape
         assert artifact["pred_labels"].shape == validation.regime_labels.shape
         assert artifact["posterior_probs"].shape == probs.shape
+
+
+def test_joint_config_artifact_writer_serializes_config(tmp_path) -> None:
+    config = JointSyntheticConfig(seed=42, hidden_size=7)
+
+    write_joint_config_artifact(tmp_path / "config.json", config)
+
+    payload = json.loads((tmp_path / "config.json").read_text(encoding="utf-8"))
+    assert payload["seed"] == 42
+    assert payload["hidden_size"] == 7
