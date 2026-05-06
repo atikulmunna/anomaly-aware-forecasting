@@ -2,12 +2,45 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 import numpy as np
 from numpy.typing import ArrayLike
 
 from aaf.data.synthetic import FloatArray
 
 _EPS = 1e-12
+
+
+@dataclass(frozen=True)
+class RegimePosteriorDiagnostics:
+    entropy_mean: float
+    normalized_entropy_mean: float
+    confidence_mean: float
+    switch_count: int
+    n_regimes: int
+
+    def to_dict(self) -> dict[str, float | int]:
+        return {
+            "entropy_mean": self.entropy_mean,
+            "normalized_entropy_mean": self.normalized_entropy_mean,
+            "confidence_mean": self.confidence_mean,
+            "switch_count": self.switch_count,
+            "n_regimes": self.n_regimes,
+        }
+
+
+def regime_posterior_diagnostics(probs: ArrayLike) -> RegimePosteriorDiagnostics:
+    """Return aggregate diagnostics for regime posterior probabilities."""
+
+    values = _posterior_array(probs)
+    return RegimePosteriorDiagnostics(
+        entropy_mean=float(np.mean(regime_posterior_entropy_values(values))),
+        normalized_entropy_mean=float(np.mean(normalized_regime_entropy_values(values))),
+        confidence_mean=mean_regime_confidence(values),
+        switch_count=posterior_switch_count(values),
+        n_regimes=int(values.shape[-1]),
+    )
 
 
 def regime_posterior_entropy_values(probs: ArrayLike) -> FloatArray:

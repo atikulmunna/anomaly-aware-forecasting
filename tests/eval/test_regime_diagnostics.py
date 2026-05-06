@@ -9,6 +9,7 @@ from aaf.eval.regime_diagnostics import (
     posterior_argmax_labels,
     posterior_switch_count,
     regime_confidence_values,
+    regime_posterior_diagnostics,
     regime_posterior_entropy_values,
 )
 
@@ -42,3 +43,14 @@ def test_posterior_switch_count_uses_argmax_labels() -> None:
 
     assert posterior_argmax_labels(probs).tolist() == [0, 1, 1, 0]
     assert posterior_switch_count(probs) == 2
+
+
+def test_regime_posterior_diagnostics_returns_serializable_summary() -> None:
+    probs = np.array([[0.8, 0.2], [0.7, 0.3], [0.1, 0.9]])
+
+    diagnostics = regime_posterior_diagnostics(probs)
+    payload = diagnostics.to_dict()
+
+    assert payload["n_regimes"] == 2
+    assert payload["switch_count"] == 1
+    assert payload["confidence_mean"] == pytest.approx((0.8 + 0.7 + 0.9) / 3.0)
