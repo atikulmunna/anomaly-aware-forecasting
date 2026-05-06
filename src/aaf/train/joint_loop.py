@@ -6,12 +6,14 @@ from dataclasses import dataclass
 
 import numpy as np
 import torch
+from torch import Tensor
 from torch.utils.data import TensorDataset
 
 from aaf.data.preprocessing import WindowedDataset
 from aaf.data.synthetic import FloatArray, IntArray
 from aaf.eval.forecasting import MixtureForecast
 from aaf.models.joint import JointMDNLSTMConfig, JointMDNLSTMForecaster
+from aaf.models.joint_loss import JointLossConfig, joint_loss
 from aaf.train.loop import TrainingHistory
 
 
@@ -52,3 +54,22 @@ def validate_joint_dataset_matches_model(
         raise ValueError("dataset target horizon must match model horizon")
     if np.max(dataset.regime_labels) >= model_config.n_regimes:
         raise ValueError("dataset regime labels must be less than n_regimes")
+
+
+def joint_batch_loss(
+    model: JointMDNLSTMForecaster,
+    windows: Tensor,
+    targets: Tensor,
+    regime_labels: Tensor,
+    loss_config: JointLossConfig,
+) -> Tensor:
+    """Return joint loss for one training batch."""
+
+    output = model.forecast_last(windows)
+    total, _components = joint_loss(
+        targets.unsqueeze(1),
+        output,
+        loss_config,
+        regime_labels=regime_labels.unsqueeze(1),
+    )
+    return total

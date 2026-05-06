@@ -3,9 +3,11 @@ import pytest
 
 from aaf.eval.forecasting import MixtureForecast
 from aaf.models.joint import JointMDNLSTMConfig, JointMDNLSTMForecaster
+from aaf.models.joint_loss import JointLossConfig
 from aaf.train.joint_loop import (
     JointPrediction,
     JointTrainingResult,
+    joint_batch_loss,
     to_joint_tensor_dataset,
     validate_joint_dataset_matches_model,
 )
@@ -62,3 +64,22 @@ def test_validate_joint_dataset_rejects_bad_horizon() -> None:
             make_linear_dataset(horizon=2),
             JointMDNLSTMConfig(input_size=1, output_size=1, n_regimes=2, horizon=1),
         )
+
+
+def test_joint_batch_loss_returns_finite_scalar() -> None:
+    dataset = make_linear_dataset(n_examples=4)
+    model = JointMDNLSTMForecaster(
+        JointMDNLSTMConfig(input_size=1, output_size=1, n_regimes=2, hidden_size=6, num_layers=1)
+    )
+    windows, targets, regime_labels = to_joint_tensor_dataset(dataset).tensors
+
+    loss = joint_batch_loss(
+        model,
+        windows,
+        targets,
+        regime_labels,
+        loss_config=JointLossConfig(),
+    )
+
+    assert loss.ndim == 0
+    assert np.isfinite(loss.item())
