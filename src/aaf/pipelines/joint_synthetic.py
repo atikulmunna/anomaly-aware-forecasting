@@ -28,6 +28,7 @@ from aaf.eval.forecasting import MixtureForecast, negative_log_likelihood_values
 from aaf.models.joint import JointMDNLSTMConfig
 from aaf.models.joint_loss import JointLossConfig
 from aaf.train.joint_loop import JointPrediction
+from aaf.train.loop import TrainingConfig
 
 
 @dataclass(frozen=True)
@@ -132,6 +133,17 @@ def joint_loss_config(config: JointSyntheticConfig) -> JointLossConfig:
     return JointLossConfig(
         smoothness_weight=config.smoothness_weight,
         supervised_regime_weight=config.supervised_regime_weight,
+    )
+
+
+def joint_training_config(config: JointSyntheticConfig) -> TrainingConfig:
+    """Create the optimizer/training-loop configuration for a pipeline run."""
+
+    return TrainingConfig(
+        epochs=config.epochs,
+        batch_size=config.batch_size,
+        learning_rate=config.learning_rate,
+        seed=config.seed,
     )
 
 

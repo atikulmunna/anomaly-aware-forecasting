@@ -9,6 +9,7 @@ from aaf.pipelines.joint_synthetic import (
     build_joint_synthetic_datasets,
     joint_loss_config,
     joint_model_config,
+    joint_training_config,
     write_joint_anomaly_artifact,
     write_joint_config_artifact,
     write_joint_forecast_artifact,
@@ -69,6 +70,17 @@ def test_joint_loss_config_uses_pipeline_weights() -> None:
 
     assert loss_config.smoothness_weight == 0.25
     assert loss_config.supervised_regime_weight == 0.5
+
+
+def test_joint_training_config_uses_pipeline_training_values() -> None:
+    config = JointSyntheticConfig(seed=11, epochs=3, batch_size=12, learning_rate=0.02)
+
+    training_config = joint_training_config(config)
+
+    assert training_config.seed == 11
+    assert training_config.epochs == 3
+    assert training_config.batch_size == 12
+    assert training_config.learning_rate == 0.02
 
 
 def test_joint_artifact_writers_emit_expected_npz_files(tmp_path) -> None:
