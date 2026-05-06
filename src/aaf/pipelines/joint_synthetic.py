@@ -461,3 +461,7 @@ def _json_ready(value: Any) -> Any:
     if isinstance(value, list | tuple):
         return [_json_ready(item) for item in value]
     return value
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
