@@ -10,6 +10,7 @@ from aaf.pipelines.joint_synthetic import (
     joint_loss_config,
     joint_model_config,
     joint_training_config,
+    train_joint_synthetic_model,
     write_joint_anomaly_artifact,
     write_joint_config_artifact,
     write_joint_forecast_artifact,
@@ -81,6 +82,31 @@ def test_joint_training_config_uses_pipeline_training_values() -> None:
     assert training_config.epochs == 3
     assert training_config.batch_size == 12
     assert training_config.learning_rate == 0.02
+
+
+def test_train_joint_synthetic_model_returns_history() -> None:
+    config = JointSyntheticConfig(
+        seed=12,
+        n_train_configs=1,
+        n_validation_configs=1,
+        n_test_configs=1,
+        series_length=80,
+        burn_in=10,
+        lookback=8,
+        stride=4,
+        hidden_size=6,
+        n_components=2,
+        epochs=1,
+        batch_size=8,
+        learning_rate=0.01,
+        supervised_regime_weight=0.1,
+    )
+    train, validation, _test, _standardizer = build_joint_synthetic_datasets(config)
+
+    result = train_joint_synthetic_model(train, validation, config)
+
+    assert len(result.history.train_loss) == 1
+    assert len(result.history.validation_loss) == 1
 
 
 def test_joint_artifact_writers_emit_expected_npz_files(tmp_path) -> None:

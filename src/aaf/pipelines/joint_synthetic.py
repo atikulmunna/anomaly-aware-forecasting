@@ -27,7 +27,7 @@ from aaf.data.synthetic import (
 from aaf.eval.forecasting import MixtureForecast, negative_log_likelihood_values
 from aaf.models.joint import JointMDNLSTMConfig
 from aaf.models.joint_loss import JointLossConfig
-from aaf.train.joint_loop import JointPrediction
+from aaf.train.joint_loop import JointPrediction, JointTrainingResult, train_joint_mdn_lstm
 from aaf.train.loop import TrainingConfig
 
 
@@ -144,6 +144,22 @@ def joint_training_config(config: JointSyntheticConfig) -> TrainingConfig:
         batch_size=config.batch_size,
         learning_rate=config.learning_rate,
         seed=config.seed,
+    )
+
+
+def train_joint_synthetic_model(
+    train_dataset: WindowedDataset,
+    validation_dataset: WindowedDataset,
+    config: JointSyntheticConfig,
+) -> JointTrainingResult:
+    """Train the joint MDN-LSTM model for a synthetic pipeline run."""
+
+    return train_joint_mdn_lstm(
+        train_dataset,
+        joint_model_config(config),
+        joint_training_config(config),
+        joint_loss_config(config),
+        validation_dataset=validation_dataset,
     )
 
 
