@@ -25,6 +25,7 @@ from aaf.data.synthetic import (
     sample_config_split,
 )
 from aaf.eval.forecasting import MixtureForecast, negative_log_likelihood_values
+from aaf.models.joint import JointMDNLSTMConfig
 from aaf.train.joint_loop import JointPrediction
 
 
@@ -107,6 +108,20 @@ def build_joint_synthetic_datasets(
             config,
         ),
         standardizer,
+    )
+
+
+def joint_model_config(config: JointSyntheticConfig) -> JointMDNLSTMConfig:
+    """Create the joint MDN-LSTM model configuration for a pipeline run."""
+
+    return JointMDNLSTMConfig(
+        input_size=config.n_channels,
+        output_size=config.n_channels,
+        n_regimes=config.n_regimes,
+        hidden_size=config.hidden_size,
+        num_layers=config.num_layers,
+        horizon=config.horizon,
+        n_components=config.n_components,
     )
 
 

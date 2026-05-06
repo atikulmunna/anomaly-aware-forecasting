@@ -7,6 +7,7 @@ from aaf.eval.forecasting import MixtureForecast
 from aaf.pipelines.joint_synthetic import (
     JointSyntheticConfig,
     build_joint_synthetic_datasets,
+    joint_model_config,
     write_joint_anomaly_artifact,
     write_joint_config_artifact,
     write_joint_forecast_artifact,
@@ -41,6 +42,23 @@ def test_build_joint_synthetic_datasets_returns_windowed_splits() -> None:
     assert len(validation) > 0
     assert len(test) > 0
     assert standardizer.mean.shape == (1,)
+
+
+def test_joint_model_config_matches_pipeline_dimensions() -> None:
+    config = JointSyntheticConfig(
+        n_channels=2,
+        n_regimes=4,
+        hidden_size=9,
+        n_components=5,
+    )
+
+    model_config = joint_model_config(config)
+
+    assert model_config.input_size == 2
+    assert model_config.output_size == 2
+    assert model_config.n_regimes == 4
+    assert model_config.hidden_size == 9
+    assert model_config.n_components == 5
 
 
 def test_joint_artifact_writers_emit_expected_npz_files(tmp_path) -> None:
