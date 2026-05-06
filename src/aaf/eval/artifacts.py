@@ -5,8 +5,11 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from numpy.typing import ArrayLike
+
 from aaf.eval.diagnostics import mixture_diagnostics
 from aaf.eval.forecasting import MixtureForecast
+from aaf.eval.regime_diagnostics import regime_posterior_diagnostics
 
 
 def write_mixture_diagnostics_json(
@@ -22,4 +25,11 @@ def write_mixture_diagnostics_json(
         payload["validation"] = mixture_diagnostics(validation).to_dict()
     if test is not None:
         payload["test"] = mixture_diagnostics(test).to_dict()
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
+
+
+def write_regime_diagnostics_json(path: Path, *, posterior_probs: ArrayLike) -> None:
+    """Write regime posterior diagnostics to JSON."""
+
+    payload = regime_posterior_diagnostics(posterior_probs).to_dict()
     path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
