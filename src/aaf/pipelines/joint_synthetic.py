@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
+import torch
 
 from aaf.data.failures import FailureEvent, apply_failure_events
 from aaf.data.preprocessing import (
@@ -187,6 +188,32 @@ def prepare_joint_output_dir(output_dir: Path, *, overwrite: bool = False) -> No
     if output_dir.exists() and any(output_dir.iterdir()) and not overwrite:
         raise FileExistsError(f"output directory is not empty: {output_dir}")
     output_dir.mkdir(parents=True, exist_ok=True)
+
+
+def write_joint_training_artifacts(
+    output_dir: Path,
+    *,
+    config: JointSyntheticConfig,
+    result: JointTrainingResult,
+    model_config: JointMDNLSTMConfig,
+    standardizer: Standardizer,
+) -> None:
+    """Write configuration, history, checkpoint, and scaler artifacts."""
+
+    write_joint_config_artifact(output_dir / "config.json", config)
+    (output_dir / "training_history.json").write_text(
+        json.dumps(asdict(result.history), indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
+    torch.save(
+        {
+            "model_config": asdict(model_config),
+            "loss_config": asdict(joint_loss_config(config)),
+            "state_dict": result.model.state_dict(),
+        },
+        output_dir / "model.pt",
+    )
+    np.savez(output_dir / "standardizer.npz", mean=standardizer.mean, std=standardizer.std)
 
 
 def _generate_series(
