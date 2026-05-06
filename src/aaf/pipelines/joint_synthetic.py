@@ -27,6 +27,7 @@ from aaf.data.synthetic import (
 )
 from aaf.eval.artifacts import write_mixture_diagnostics_json, write_regime_diagnostics_json
 from aaf.eval.forecasting import MixtureForecast, negative_log_likelihood_values
+from aaf.eval.report import EvaluationReport, evaluate_run_directory
 from aaf.models.joint import JointMDNLSTMConfig
 from aaf.models.joint_loss import JointLossConfig
 from aaf.train.joint_loop import (
@@ -117,6 +118,47 @@ def build_joint_synthetic_datasets(
             config,
         ),
         standardizer,
+    )
+
+
+def run_joint_synthetic(
+    output_dir: Path,
+    config: JointSyntheticConfig,
+    *,
+    overwrite: bool = False,
+) -> EvaluationReport:
+    """Train the joint model on synthetic data and write evaluation artifacts."""
+
+    prepare_joint_output_dir(output_dir, overwrite=overwrite)
+    train_dataset, validation_dataset, test_dataset, standardizer = build_joint_synthetic_datasets(
+        config
+    )
+    model_config = joint_model_config(config)
+    result = train_joint_synthetic_model(train_dataset, validation_dataset, config)
+    validation_prediction, test_prediction = predict_joint_synthetic_splits(
+        result,
+        validation_dataset,
+        test_dataset,
+    )
+    write_joint_training_artifacts(
+        output_dir,
+        config=config,
+        result=result,
+        model_config=model_config,
+        standardizer=standardizer,
+    )
+    write_joint_evaluation_artifacts(
+        output_dir,
+        validation_dataset=validation_dataset,
+        test_dataset=test_dataset,
+        validation_prediction=validation_prediction,
+        test_prediction=test_prediction,
+    )
+    return evaluate_run_directory(
+        output_dir,
+        output_path=output_dir / "metrics.json",
+        energy_samples=config.energy_samples,
+        seed=config.seed,
     )
 
 

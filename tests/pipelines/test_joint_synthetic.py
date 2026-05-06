@@ -12,6 +12,7 @@ from aaf.pipelines.joint_synthetic import (
     joint_training_config,
     predict_joint_synthetic_splits,
     prepare_joint_output_dir,
+    run_joint_synthetic,
     train_joint_synthetic_model,
     write_joint_anomaly_artifact,
     write_joint_config_artifact,
@@ -226,6 +227,45 @@ def test_write_joint_evaluation_artifacts_creates_metric_inputs(tmp_path) -> Non
         "regime_diagnostics.json",
     }
     assert expected.issubset({path.name for path in tmp_path.iterdir()})
+
+
+def test_run_joint_synthetic_writes_full_run_directory(tmp_path) -> None:
+    config = JointSyntheticConfig(
+        seed=16,
+        n_train_configs=1,
+        n_validation_configs=1,
+        n_test_configs=1,
+        series_length=80,
+        burn_in=10,
+        lookback=8,
+        stride=4,
+        hidden_size=6,
+        n_components=2,
+        epochs=1,
+        batch_size=8,
+        learning_rate=0.01,
+        energy_samples=16,
+    )
+
+    report = run_joint_synthetic(tmp_path, config)
+
+    expected = {
+        "config.json",
+        "training_history.json",
+        "model.pt",
+        "standardizer.npz",
+        "forecast.npz",
+        "anomaly_validation.npz",
+        "anomaly_test.npz",
+        "regime.npz",
+        "mixture_diagnostics.json",
+        "regime_diagnostics.json",
+        "metrics.json",
+    }
+    assert expected.issubset({path.name for path in tmp_path.iterdir()})
+    assert report.forecast is not None
+    assert report.anomaly is not None
+    assert report.regime is not None
 
 
 def test_joint_artifact_writers_emit_expected_npz_files(tmp_path) -> None:
