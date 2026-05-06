@@ -2,8 +2,9 @@ import numpy as np
 
 from aaf.eval.forecasting import MixtureForecast
 from aaf.models.joint import JointMDNLSTMConfig, JointMDNLSTMForecaster
-from aaf.train.joint_loop import JointPrediction, JointTrainingResult
+from aaf.train.joint_loop import JointPrediction, JointTrainingResult, to_joint_tensor_dataset
 from aaf.train.loop import TrainingHistory
+from tests.train.test_loop import make_linear_dataset
 
 
 def test_joint_training_result_holds_model_and_history() -> None:
@@ -30,3 +31,13 @@ def test_joint_prediction_holds_forecast_and_regime_arrays() -> None:
     )
 
     assert prediction.regime_labels.tolist() == [0, 1]
+
+
+def test_to_joint_tensor_dataset_includes_regime_labels() -> None:
+    dataset = make_linear_dataset(n_examples=4)
+    tensor_dataset = to_joint_tensor_dataset(dataset)
+    windows, targets, regime_labels = tensor_dataset[0]
+
+    assert tuple(windows.shape) == (6, 1)
+    assert tuple(targets.shape) == (1, 1)
+    assert regime_labels.item() == 0
