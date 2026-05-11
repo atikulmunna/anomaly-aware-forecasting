@@ -216,6 +216,19 @@ def make_smd_windowed_splits(
     )
 
 
+def concat_windowed_datasets(datasets: tuple[WindowedDataset, ...]) -> WindowedDataset:
+    """Concatenate windowed datasets produced for multiple SMD machines."""
+
+    if len(datasets) == 0:
+        raise ValueError("at least one windowed dataset is required")
+    return WindowedDataset(
+        windows=np.concatenate([dataset.windows for dataset in datasets], axis=0),
+        targets=np.concatenate([dataset.targets for dataset in datasets], axis=0),
+        regime_labels=np.concatenate([dataset.regime_labels for dataset in datasets], axis=0),
+        anomaly_labels=np.concatenate([dataset.anomaly_labels for dataset in datasets], axis=0),
+    )
+
+
 def _machine_ids(directory: Path) -> set[str]:
     return {path.stem for path in directory.iterdir() if path.is_file() and path.suffix == ".txt"}
 

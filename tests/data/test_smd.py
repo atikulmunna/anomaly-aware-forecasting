@@ -6,6 +6,7 @@ import pytest
 from aaf.data.smd import (
     SMDMachineSplit,
     SMDPreparedMachine,
+    concat_windowed_datasets,
     fit_smd_standardizer,
     list_smd_machine_ids,
     load_smd_labels,
@@ -212,3 +213,23 @@ def test_make_smd_windowed_splits_aligns_test_labels_to_targets() -> None:
     )
 
     assert test.anomaly_labels.tolist()[:3] == [1, 0, 0]
+
+
+def test_concat_windowed_datasets_combines_machine_examples() -> None:
+    prepared = SMDPreparedMachine(
+        machine_id="machine-1-1",
+        train=np.arange(16, dtype=np.float64).reshape(8, 2),
+        validation=np.arange(16, dtype=np.float64).reshape(8, 2),
+        test=np.arange(16, dtype=np.float64).reshape(8, 2),
+        validation_labels=np.zeros(8, dtype=np.int64),
+        test_labels=np.zeros(8, dtype=np.int64),
+    )
+    train, _validation, _test = make_smd_windowed_splits(
+        prepared,
+        lookback=3,
+        horizon=1,
+    )
+
+    combined = concat_windowed_datasets((train, train))
+
+    assert len(combined) == len(train) * 2
