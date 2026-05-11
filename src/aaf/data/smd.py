@@ -4,6 +4,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import numpy as np
+
+from aaf.data.synthetic import FloatArray
+
 
 def list_smd_machine_ids(root: Path) -> tuple[str, ...]:
     """Return machine ids that have train, test, and test-label files."""
@@ -26,3 +30,18 @@ def list_smd_machine_ids(root: Path) -> tuple[str, ...]:
 
 def _machine_ids(directory: Path) -> set[str]:
     return {path.stem for path in directory.iterdir() if path.is_file() and path.suffix == ".txt"}
+
+
+def load_smd_matrix(path: Path) -> FloatArray:
+    """Load one SMD observation matrix from a comma-separated text file."""
+
+    if not path.exists():
+        raise FileNotFoundError(path)
+    values = np.loadtxt(path, delimiter=",", dtype=np.float64)
+    if values.ndim == 1:
+        values = values[:, np.newaxis]
+    if values.ndim != 2 or values.shape[0] == 0 or values.shape[1] == 0:
+        raise ValueError("SMD matrix must have shape (T, D)")
+    if np.any(~np.isfinite(values)):
+        raise ValueError("SMD matrix must contain only finite values")
+    return np.asarray(values, dtype=np.float64)

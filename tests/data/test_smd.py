@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from aaf.data.smd import list_smd_machine_ids
+from aaf.data.smd import list_smd_machine_ids, load_smd_matrix
 
 
 def write_smd_fixture(root: Path, machine_id: str = "machine-1-1") -> None:
@@ -22,3 +22,20 @@ def test_list_smd_machine_ids_returns_complete_machine_intersection(tmp_path) ->
 def test_list_smd_machine_ids_requires_expected_directories(tmp_path) -> None:
     with pytest.raises(FileNotFoundError, match="train"):
         list_smd_machine_ids(tmp_path)
+
+
+def test_load_smd_matrix_reads_comma_separated_observations(tmp_path) -> None:
+    path = tmp_path / "machine.txt"
+    path.write_text("1.0,2.0\n3.0,4.0\n", encoding="utf-8")
+
+    matrix = load_smd_matrix(path)
+
+    assert matrix.shape == (2, 2)
+    assert matrix.tolist() == [[1.0, 2.0], [3.0, 4.0]]
+
+
+def test_load_smd_matrix_promotes_univariate_files(tmp_path) -> None:
+    path = tmp_path / "machine.txt"
+    path.write_text("1.0\n2.0\n", encoding="utf-8")
+
+    assert load_smd_matrix(path).shape == (2, 1)
