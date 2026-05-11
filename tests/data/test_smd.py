@@ -13,6 +13,7 @@ from aaf.data.smd import (
     load_smd_machines,
     load_smd_matrix,
     make_smd_series,
+    make_smd_windowed_splits,
     prepare_smd_machine,
     standardize_smd_machine,
 )
@@ -191,3 +192,23 @@ def test_make_smd_series_uses_dummy_regime_labels() -> None:
     assert series.config_id == "machine-1-1-test"
     assert series.regime_labels.tolist() == [0, 0, 0]
     assert series.anomaly_labels.tolist() == [0, 1, 0]
+
+
+def test_make_smd_windowed_splits_aligns_test_labels_to_targets() -> None:
+    prepared = SMDPreparedMachine(
+        machine_id="machine-1-1",
+        train=np.arange(16, dtype=np.float64).reshape(8, 2),
+        validation=np.arange(16, dtype=np.float64).reshape(8, 2),
+        test=np.arange(16, dtype=np.float64).reshape(8, 2),
+        validation_labels=np.zeros(8, dtype=np.int64),
+        test_labels=np.array([0, 0, 0, 1, 0, 0, 0, 0]),
+    )
+
+    _train, _validation, test = make_smd_windowed_splits(
+        prepared,
+        lookback=3,
+        horizon=2,
+        stride=1,
+    )
+
+    assert test.anomaly_labels.tolist()[:3] == [1, 0, 0]

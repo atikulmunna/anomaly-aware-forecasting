@@ -7,7 +7,7 @@ from pathlib import Path
 
 import numpy as np
 
-from aaf.data.preprocessing import Standardizer
+from aaf.data.preprocessing import Standardizer, WindowedDataset, make_windowed_dataset
 from aaf.data.synthetic import FloatArray, IntArray, SyntheticSeries
 
 
@@ -170,6 +170,50 @@ def make_smd_series(
     )
     series.validate()
     return series
+
+
+def make_smd_windowed_splits(
+    prepared: SMDPreparedMachine,
+    *,
+    lookback: int,
+    horizon: int,
+    stride: int = 1,
+) -> tuple[WindowedDataset, WindowedDataset, WindowedDataset]:
+    """Create train, validation, and test windows for a prepared SMD machine."""
+
+    prepared.validate()
+    return (
+        make_windowed_dataset(
+            make_smd_series(
+                prepared.train,
+                np.zeros(prepared.train.shape[0], dtype=np.int64),
+                config_id=f"{prepared.machine_id}-train",
+            ),
+            lookback=lookback,
+            horizon=horizon,
+            stride=stride,
+        ),
+        make_windowed_dataset(
+            make_smd_series(
+                prepared.validation,
+                prepared.validation_labels,
+                config_id=f"{prepared.machine_id}-validation",
+            ),
+            lookback=lookback,
+            horizon=horizon,
+            stride=stride,
+        ),
+        make_windowed_dataset(
+            make_smd_series(
+                prepared.test,
+                prepared.test_labels,
+                config_id=f"{prepared.machine_id}-test",
+            ),
+            lookback=lookback,
+            horizon=horizon,
+            stride=stride,
+        ),
+    )
 
 
 def _machine_ids(directory: Path) -> set[str]:
