@@ -5,8 +5,13 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+import numpy as np
+
+from aaf.baselines.forecasting import SeasonalNaiveForecaster
 from aaf.data.preprocessing import Standardizer, WindowedDataset
 from aaf.data.smd import prepare_smd_windowed_datasets
+from aaf.data.synthetic import FloatArray
+from aaf.eval.forecasting import MixtureForecast, negative_log_likelihood_values
 
 
 @dataclass(frozen=True)
@@ -50,3 +55,46 @@ def build_smd_baseline_datasets(
         horizon=config.horizon,
         stride=config.stride,
     )
+
+
+def fit_smd_baseline(
+    train_dataset: WindowedDataset,
+    config: SMDBaselineConfig,
+) -> SeasonalNaiveForecaster:
+    """Fit a seasonal-naive baseline from SMD training windows."""
+
+    return SeasonalNaiveForecaster.fit(
+        _flatten_windows(train_dataset),
+        season_length=config.season_length,
+    )
+
+
+def write_smd_forecast_artifact(
+    path: Path,
+    observed: FloatArray,
+    forecast: MixtureForecast,
+) -> None:
+    """Write a forecast artifact compatible with aaf-evaluate."""
+
+    np.savez(
+        path,
+        observed=observed,
+        weights=forecast.weights,
+        means=forecast.means,
+        stds=forecast.stds,
+    )
+
+
+def write_smd_anomaly_artifact(
+    path: Path,
+    dataset: WindowedDataset,
+    forecast: MixtureForecast,
+) -> None:
+    """Write SMD anomaly scores from forecast likelihoods."""
+
+    scores = np.mean(negative_log_likelihood_values(dataset.targets, forecast), axis=-1)
+    np.savez(path, scores=scores, labels=dataset.anomaly_labels)
+
+
+def _flatten_windows(dataset: WindowedDataset) -> FloatArray:
+    return np.asarray(dataset.windows.reshape(-1, dataset.windows.shape[-1]), dtype=np.float64)

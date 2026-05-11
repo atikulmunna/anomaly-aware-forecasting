@@ -1,8 +1,15 @@
 from pathlib import Path
 
+import numpy as np
 import pytest
 
-from aaf.pipelines.smd_baseline import SMDBaselineConfig, build_smd_baseline_datasets
+from aaf.pipelines.smd_baseline import (
+    SMDBaselineConfig,
+    build_smd_baseline_datasets,
+    fit_smd_baseline,
+    write_smd_anomaly_artifact,
+    write_smd_forecast_artifact,
+)
 
 
 def write_smd_fixture(root: Path, machine_id: str = "machine-1-1") -> None:
@@ -53,3 +60,31 @@ def test_build_smd_baseline_datasets_returns_windowed_splits(tmp_path) -> None:
     assert len(validation) > 0
     assert len(test) > 0
     assert len(standardizers) == 1
+
+
+def test_fit_smd_baseline_predicts_validation_windows(tmp_path) -> None:
+    write_smd_fixture(tmp_path)
+    config = SMDBaselineConfig(root=tmp_path, lookback=2, horizon=1, validation_fraction=0.25)
+    train, validation, _test, _standardizers = build_smd_baseline_datasets(config)
+
+    forecaster = fit_smd_baseline(train, config)
+    forecast = forecaster.predict(validation.windows, horizon=config.horizon)
+
+    assert forecast.weights.shape[0] == len(validation)
+
+
+def test_smd_baseline_artifact_writers_emit_npz_files(tmp_path) -> None:
+    write_smd_fixture(tmp_path)
+    config = SMDBaselineConfig(root=tmp_path, lookback=2, horizon=1, validation_fraction=0.25)
+    train, validation, _test, _standardizers = build_smd_baseline_datasets(config)
+    forecast = fit_smd_baseline(train, config).predict(
+        validation.windows,
+        horizon=config.horizon,
+    )
+
+    write_smd_forecast_artifact(tmp_path / "forecast.npz", validation.targets, forecast)
+    write_smd_anomaly_artifact(tmp_path / "anomaly.npz", validation, forecast)
+
+    with np.load(tmp_path / "forecast.npz") as artifact:
+        assert artifact["observed"].shape == validation.targets.shape
+    assert (tmp_path / "anomaly.npz").exists()
