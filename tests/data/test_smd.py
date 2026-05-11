@@ -8,6 +8,7 @@ from aaf.data.smd import (
     list_smd_machine_ids,
     load_smd_labels,
     load_smd_machine,
+    load_smd_machines,
     load_smd_matrix,
 )
 
@@ -15,7 +16,9 @@ from aaf.data.smd import (
 def write_smd_fixture(root: Path, machine_id: str = "machine-1-1") -> None:
     for directory in ("train", "test", "test_label"):
         (root / directory).mkdir(parents=True, exist_ok=True)
-        (root / directory / f"{machine_id}.txt").write_text("1,2\n3,4\n", encoding="utf-8")
+    (root / "train" / f"{machine_id}.txt").write_text("1,2\n3,4\n", encoding="utf-8")
+    (root / "test" / f"{machine_id}.txt").write_text("1,2\n3,4\n", encoding="utf-8")
+    (root / "test_label" / f"{machine_id}.txt").write_text("0\n1\n", encoding="utf-8")
 
 
 def test_list_smd_machine_ids_returns_complete_machine_intersection(tmp_path) -> None:
@@ -96,3 +99,21 @@ def test_load_smd_machine_reads_standard_directory_tree(tmp_path) -> None:
     assert split.train.shape == (2, 2)
     assert split.test.shape == (2, 2)
     assert split.test_labels.tolist() == [0, 1]
+
+
+def test_load_smd_machines_uses_discovered_order(tmp_path) -> None:
+    write_smd_fixture(tmp_path, "machine-1-2")
+    write_smd_fixture(tmp_path, "machine-1-1")
+
+    splits = load_smd_machines(tmp_path)
+
+    assert [split.machine_id for split in splits] == ["machine-1-1", "machine-1-2"]
+
+
+def test_load_smd_machines_accepts_explicit_subset(tmp_path) -> None:
+    write_smd_fixture(tmp_path, "machine-1-1")
+    write_smd_fixture(tmp_path, "machine-1-2")
+
+    splits = load_smd_machines(tmp_path, ("machine-1-2",))
+
+    assert [split.machine_id for split in splits] == ["machine-1-2"]

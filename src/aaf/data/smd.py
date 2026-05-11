@@ -66,6 +66,18 @@ def load_smd_machine(root: Path, machine_id: str) -> SMDMachineSplit:
     return split
 
 
+def load_smd_machines(
+    root: Path,
+    machine_ids: tuple[str, ...] | None = None,
+) -> tuple[SMDMachineSplit, ...]:
+    """Load multiple SMD machine splits in deterministic id order."""
+
+    selected_ids = list_smd_machine_ids(root) if machine_ids is None else machine_ids
+    if len(selected_ids) == 0:
+        raise ValueError("at least one SMD machine id is required")
+    return tuple(load_smd_machine(root, machine_id) for machine_id in selected_ids)
+
+
 def _machine_ids(directory: Path) -> set[str]:
     return {path.stem for path in directory.iterdir() if path.is_file() and path.suffix == ".txt"}
 
