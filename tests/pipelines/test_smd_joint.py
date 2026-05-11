@@ -2,7 +2,13 @@ from pathlib import Path
 
 import pytest
 
-from aaf.pipelines.smd_joint import SMDJointConfig
+from aaf.pipelines.smd_joint import (
+    SMDJointConfig,
+    build_smd_joint_datasets,
+    smd_joint_loss_config,
+    smd_joint_model_config,
+    smd_joint_training_config,
+)
 
 
 def write_smd_fixture(root: Path, machine_id: str = "machine-1-1") -> None:
@@ -46,3 +52,29 @@ def test_smd_joint_config_accepts_valid_values(tmp_path) -> None:
 def test_smd_joint_config_rejects_invalid_regime_count(tmp_path) -> None:
     with pytest.raises(ValueError, match="n_regimes"):
         SMDJointConfig(root=tmp_path, n_regimes=1).validate()
+
+
+def test_build_smd_joint_datasets_returns_windowed_splits(tmp_path) -> None:
+    write_smd_fixture(tmp_path)
+
+    train, validation, test, standardizers = build_smd_joint_datasets(tiny_config(tmp_path))
+
+    assert len(train) > 0
+    assert len(validation) > 0
+    assert len(test) > 0
+    assert len(standardizers) == 1
+
+
+def test_smd_joint_config_helpers_match_dataset_dimensions(tmp_path) -> None:
+    write_smd_fixture(tmp_path)
+    config = tiny_config(tmp_path)
+    train, _validation, _test, _standardizers = build_smd_joint_datasets(config)
+
+    model_config = smd_joint_model_config(train, config)
+    loss_config = smd_joint_loss_config(config)
+    training_config = smd_joint_training_config(config)
+
+    assert model_config.input_size == 2
+    assert model_config.n_regimes == 2
+    assert loss_config.smoothness_weight == config.smoothness_weight
+    assert training_config.epochs == 1

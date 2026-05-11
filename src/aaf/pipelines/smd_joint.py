@@ -5,6 +5,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from aaf.data.preprocessing import Standardizer, WindowedDataset
+from aaf.data.smd import prepare_smd_windowed_datasets
+from aaf.models.joint import JointMDNLSTMConfig
+from aaf.models.joint_loss import JointLossConfig
+from aaf.train.loop import TrainingConfig
+
 
 @dataclass(frozen=True)
 class SMDJointConfig:
@@ -55,3 +61,56 @@ class SMDJointConfig:
             raise ValueError("supervised_regime_weight must be non-negative")
         if self.energy_samples < 2:
             raise ValueError("energy_samples must be at least 2")
+
+
+def build_smd_joint_datasets(
+    config: SMDJointConfig,
+) -> tuple[WindowedDataset, WindowedDataset, WindowedDataset, tuple[Standardizer, ...]]:
+    """Build SMD windowed datasets for joint model training."""
+
+    config.validate()
+    return prepare_smd_windowed_datasets(
+        config.root,
+        machine_ids=config.machine_ids,
+        validation_fraction=config.validation_fraction,
+        lookback=config.lookback,
+        horizon=config.horizon,
+        stride=config.stride,
+    )
+
+
+def smd_joint_model_config(
+    dataset: WindowedDataset,
+    config: SMDJointConfig,
+) -> JointMDNLSTMConfig:
+    """Create a joint model config from SMD dataset dimensions."""
+
+    return JointMDNLSTMConfig(
+        input_size=dataset.windows.shape[-1],
+        output_size=dataset.targets.shape[-1],
+        n_regimes=config.n_regimes,
+        hidden_size=config.hidden_size,
+        num_layers=config.num_layers,
+        horizon=config.horizon,
+        n_components=config.n_components,
+    )
+
+
+def smd_joint_loss_config(config: SMDJointConfig) -> JointLossConfig:
+    """Create joint objective weights for an SMD run."""
+
+    return JointLossConfig(
+        smoothness_weight=config.smoothness_weight,
+        supervised_regime_weight=config.supervised_regime_weight,
+    )
+
+
+def smd_joint_training_config(config: SMDJointConfig) -> TrainingConfig:
+    """Create training loop parameters for an SMD joint run."""
+
+    return TrainingConfig(
+        epochs=config.epochs,
+        batch_size=config.batch_size,
+        learning_rate=config.learning_rate,
+        seed=config.seed,
+    )
