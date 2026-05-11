@@ -2,15 +2,20 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+import json
+from dataclasses import asdict, dataclass
 from pathlib import Path
+from typing import Any
 
 import numpy as np
+import torch
 
 from aaf.data.preprocessing import Standardizer, WindowedDataset
 from aaf.data.smd import prepare_smd_windowed_datasets
 from aaf.data.synthetic import FloatArray
+from aaf.eval.artifacts import write_mixture_diagnostics_json, write_regime_diagnostics_json
 from aaf.eval.forecasting import MixtureForecast, negative_log_likelihood_values
+from aaf.eval.report import EvaluationReport, evaluate_run_directory
 from aaf.models.joint import JointMDNLSTMConfig
 from aaf.models.joint_loss import JointLossConfig
 from aaf.train.joint_loop import (
@@ -86,6 +91,58 @@ def build_smd_joint_datasets(
         lookback=config.lookback,
         horizon=config.horizon,
         stride=config.stride,
+    )
+
+
+def run_smd_joint(
+    output_dir: Path,
+    config: SMDJointConfig,
+    *,
+    overwrite: bool = False,
+) -> EvaluationReport:
+    """Train the SMD joint model and write evaluation artifacts."""
+
+    config.validate()
+    if output_dir.exists() and any(output_dir.iterdir()) and not overwrite:
+        raise FileExistsError(f"output directory is not empty: {output_dir}")
+    output_dir.mkdir(parents=True, exist_ok=True)
+    train, validation, test, standardizers = build_smd_joint_datasets(config)
+    model_config = smd_joint_model_config(train, config)
+    result = train_smd_joint_model(train, validation, config)
+    validation_prediction, test_prediction = predict_smd_joint_splits(result, validation, test)
+
+    _write_config(output_dir / "config.json", config)
+    _write_training_artifacts(output_dir, result, model_config, config, standardizers)
+    write_smd_joint_forecast_artifact(
+        output_dir / "forecast.npz",
+        test.targets,
+        test_prediction.forecast,
+    )
+    write_smd_joint_anomaly_artifact(
+        output_dir / "anomaly_validation.npz",
+        validation,
+        validation_prediction.forecast,
+    )
+    write_smd_joint_anomaly_artifact(
+        output_dir / "anomaly_test.npz",
+        test,
+        test_prediction.forecast,
+    )
+    write_smd_joint_regime_artifact(output_dir / "regime.npz", test, test_prediction)
+    write_mixture_diagnostics_json(
+        output_dir / "mixture_diagnostics.json",
+        validation=validation_prediction.forecast,
+        test=test_prediction.forecast,
+    )
+    write_regime_diagnostics_json(
+        output_dir / "regime_diagnostics.json",
+        posterior_probs=test_prediction.regime_probs,
+    )
+    return evaluate_run_directory(
+        output_dir,
+        output_path=output_dir / "metrics.json",
+        energy_samples=config.energy_samples,
+        seed=config.seed,
     )
 
 
@@ -195,3 +252,46 @@ def write_smd_joint_regime_artifact(
         pred_labels=prediction.regime_labels,
         posterior_probs=prediction.regime_probs,
     )
+
+
+def _write_training_artifacts(
+    output_dir: Path,
+    result: JointTrainingResult,
+    model_config: JointMDNLSTMConfig,
+    config: SMDJointConfig,
+    standardizers: tuple[Standardizer, ...],
+) -> None:
+    (output_dir / "training_history.json").write_text(
+        json.dumps(asdict(result.history), indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
+    torch.save(
+        {
+            "model_config": asdict(model_config),
+            "loss_config": asdict(smd_joint_loss_config(config)),
+            "state_dict": result.model.state_dict(),
+        },
+        output_dir / "model.pt",
+    )
+    np.savez(
+        output_dir / "standardizers.npz",
+        mean=np.stack([standardizer.mean for standardizer in standardizers], axis=0),
+        std=np.stack([standardizer.std for standardizer in standardizers], axis=0),
+    )
+
+
+def _write_config(path: Path, config: SMDJointConfig) -> None:
+    path.write_text(
+        json.dumps(_json_ready(asdict(config)), indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
+
+
+def _json_ready(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {str(key): _json_ready(item) for key, item in value.items()}
+    if isinstance(value, Path):
+        return str(value)
+    if isinstance(value, list | tuple):
+        return [_json_ready(item) for item in value]
+    return value

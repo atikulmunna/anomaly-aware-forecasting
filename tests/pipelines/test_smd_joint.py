@@ -7,6 +7,7 @@ from aaf.pipelines.smd_joint import (
     SMDJointConfig,
     build_smd_joint_datasets,
     predict_smd_joint_splits,
+    run_smd_joint,
     smd_joint_loss_config,
     smd_joint_model_config,
     smd_joint_training_config,
@@ -118,3 +119,29 @@ def test_smd_joint_artifact_writers_emit_npz_files(tmp_path) -> None:
         assert artifact["posterior_probs"].shape == test.regime_labels.shape + (config.n_regimes,)
     assert (tmp_path / "forecast.npz").exists()
     assert (tmp_path / "anomaly.npz").exists()
+
+
+def test_run_smd_joint_writes_full_run_directory(tmp_path) -> None:
+    dataset_root = tmp_path / "dataset"
+    output_dir = tmp_path / "run"
+    write_smd_fixture(dataset_root)
+
+    report = run_smd_joint(output_dir, tiny_config(dataset_root))
+
+    expected = {
+        "config.json",
+        "training_history.json",
+        "model.pt",
+        "standardizers.npz",
+        "forecast.npz",
+        "anomaly_validation.npz",
+        "anomaly_test.npz",
+        "regime.npz",
+        "mixture_diagnostics.json",
+        "regime_diagnostics.json",
+        "metrics.json",
+    }
+    assert expected.issubset({path.name for path in output_dir.iterdir()})
+    assert report.forecast is not None
+    assert report.anomaly is not None
+    assert report.regime is not None
