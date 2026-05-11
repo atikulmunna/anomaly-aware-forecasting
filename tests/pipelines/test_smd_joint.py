@@ -5,9 +5,11 @@ import pytest
 from aaf.pipelines.smd_joint import (
     SMDJointConfig,
     build_smd_joint_datasets,
+    predict_smd_joint_splits,
     smd_joint_loss_config,
     smd_joint_model_config,
     smd_joint_training_config,
+    train_smd_joint_model,
 )
 
 
@@ -78,3 +80,16 @@ def test_smd_joint_config_helpers_match_dataset_dimensions(tmp_path) -> None:
     assert model_config.n_regimes == 2
     assert loss_config.smoothness_weight == config.smoothness_weight
     assert training_config.epochs == 1
+
+
+def test_train_smd_joint_model_returns_predictions(tmp_path) -> None:
+    write_smd_fixture(tmp_path)
+    config = tiny_config(tmp_path)
+    train, validation, test, _standardizers = build_smd_joint_datasets(config)
+
+    result = train_smd_joint_model(train, validation, config)
+    validation_prediction, test_prediction = predict_smd_joint_splits(result, validation, test)
+
+    assert len(result.history.train_loss) == 1
+    assert validation_prediction.forecast.weights.shape[0] == len(validation)
+    assert test_prediction.regime_probs.shape == test.regime_labels.shape + (config.n_regimes,)

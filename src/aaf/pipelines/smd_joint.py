@@ -9,6 +9,12 @@ from aaf.data.preprocessing import Standardizer, WindowedDataset
 from aaf.data.smd import prepare_smd_windowed_datasets
 from aaf.models.joint import JointMDNLSTMConfig
 from aaf.models.joint_loss import JointLossConfig
+from aaf.train.joint_loop import (
+    JointPrediction,
+    JointTrainingResult,
+    predict_joint_mdn_lstm,
+    train_joint_mdn_lstm,
+)
 from aaf.train.loop import TrainingConfig
 
 
@@ -113,4 +119,33 @@ def smd_joint_training_config(config: SMDJointConfig) -> TrainingConfig:
         batch_size=config.batch_size,
         learning_rate=config.learning_rate,
         seed=config.seed,
+    )
+
+
+def train_smd_joint_model(
+    train_dataset: WindowedDataset,
+    validation_dataset: WindowedDataset,
+    config: SMDJointConfig,
+) -> JointTrainingResult:
+    """Train the joint MDN-LSTM on SMD windows."""
+
+    return train_joint_mdn_lstm(
+        train_dataset,
+        smd_joint_model_config(train_dataset, config),
+        smd_joint_training_config(config),
+        smd_joint_loss_config(config),
+        validation_dataset=validation_dataset,
+    )
+
+
+def predict_smd_joint_splits(
+    result: JointTrainingResult,
+    validation_dataset: WindowedDataset,
+    test_dataset: WindowedDataset,
+) -> tuple[JointPrediction, JointPrediction]:
+    """Predict validation and test splits for a trained SMD joint model."""
+
+    return (
+        predict_joint_mdn_lstm(result.model, validation_dataset),
+        predict_joint_mdn_lstm(result.model, test_dataset),
     )
