@@ -16,6 +16,7 @@ from aaf.data.smd import (
     make_smd_series,
     make_smd_windowed_splits,
     prepare_smd_machine,
+    prepare_smd_windowed_datasets,
     standardize_smd_machine,
 )
 
@@ -233,3 +234,33 @@ def test_concat_windowed_datasets_combines_machine_examples() -> None:
     combined = concat_windowed_datasets((train, train))
 
     assert len(combined) == len(train) * 2
+
+
+def test_prepare_smd_windowed_datasets_returns_all_splits(tmp_path) -> None:
+    write_smd_fixture(tmp_path, "machine-1-1")
+    write_smd_fixture(tmp_path, "machine-1-2")
+    for machine_id in ("machine-1-1", "machine-1-2"):
+        (tmp_path / "train" / f"{machine_id}.txt").write_text(
+            "\n".join(f"{idx},{idx + 1}" for idx in range(12)),
+            encoding="utf-8",
+        )
+        (tmp_path / "test" / f"{machine_id}.txt").write_text(
+            "\n".join(f"{idx},{idx + 1}" for idx in range(8)),
+            encoding="utf-8",
+        )
+        (tmp_path / "test_label" / f"{machine_id}.txt").write_text(
+            "0\n0\n1\n0\n0\n0\n0\n0\n",
+            encoding="utf-8",
+        )
+
+    train, validation, test, standardizers = prepare_smd_windowed_datasets(
+        tmp_path,
+        validation_fraction=0.25,
+        lookback=2,
+        horizon=1,
+    )
+
+    assert len(train) > 0
+    assert len(validation) > 0
+    assert len(test) > 0
+    assert len(standardizers) == 2

@@ -229,6 +229,38 @@ def concat_windowed_datasets(datasets: tuple[WindowedDataset, ...]) -> WindowedD
     )
 
 
+def prepare_smd_windowed_datasets(
+    root: Path,
+    *,
+    machine_ids: tuple[str, ...] | None = None,
+    validation_fraction: float = 0.2,
+    lookback: int,
+    horizon: int,
+    stride: int = 1,
+) -> tuple[WindowedDataset, WindowedDataset, WindowedDataset, tuple[Standardizer, ...]]:
+    """Load, standardize, split, and window SMD machines."""
+
+    splits = load_smd_machines(root, machine_ids)
+    prepared = tuple(
+        prepare_smd_machine(split, validation_fraction=validation_fraction) for split in splits
+    )
+    windowed = tuple(
+        make_smd_windowed_splits(
+            machine,
+            lookback=lookback,
+            horizon=horizon,
+            stride=stride,
+        )
+        for machine, _standardizer in prepared
+    )
+    return (
+        concat_windowed_datasets(tuple(item[0] for item in windowed)),
+        concat_windowed_datasets(tuple(item[1] for item in windowed)),
+        concat_windowed_datasets(tuple(item[2] for item in windowed)),
+        tuple(standardizer for _machine, standardizer in prepared),
+    )
+
+
 def _machine_ids(directory: Path) -> set[str]:
     return {path.stem for path in directory.iterdir() if path.is_file() and path.suffix == ".txt"}
 
