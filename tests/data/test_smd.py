@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from aaf.data.smd import list_smd_machine_ids, load_smd_matrix
+from aaf.data.smd import list_smd_machine_ids, load_smd_labels, load_smd_matrix
 
 
 def write_smd_fixture(root: Path, machine_id: str = "machine-1-1") -> None:
@@ -39,3 +39,18 @@ def test_load_smd_matrix_promotes_univariate_files(tmp_path) -> None:
     path.write_text("1.0\n2.0\n", encoding="utf-8")
 
     assert load_smd_matrix(path).shape == (2, 1)
+
+
+def test_load_smd_labels_reads_binary_vector(tmp_path) -> None:
+    path = tmp_path / "labels.txt"
+    path.write_text("0\n1\n0\n", encoding="utf-8")
+
+    assert load_smd_labels(path).tolist() == [0, 1, 0]
+
+
+def test_load_smd_labels_rejects_non_binary_values(tmp_path) -> None:
+    path = tmp_path / "labels.txt"
+    path.write_text("0\n2\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="binary"):
+        load_smd_labels(path)

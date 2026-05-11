@@ -6,7 +6,7 @@ from pathlib import Path
 
 import numpy as np
 
-from aaf.data.synthetic import FloatArray
+from aaf.data.synthetic import FloatArray, IntArray
 
 
 def list_smd_machine_ids(root: Path) -> tuple[str, ...]:
@@ -45,3 +45,17 @@ def load_smd_matrix(path: Path) -> FloatArray:
     if np.any(~np.isfinite(values)):
         raise ValueError("SMD matrix must contain only finite values")
     return np.asarray(values, dtype=np.float64)
+
+
+def load_smd_labels(path: Path) -> IntArray:
+    """Load one SMD anomaly-label vector from a text file."""
+
+    if not path.exists():
+        raise FileNotFoundError(path)
+    values = np.loadtxt(path, delimiter=",", dtype=np.int64)
+    labels = np.asarray(values, dtype=np.int64).reshape(-1)
+    if labels.shape[0] == 0:
+        raise ValueError("SMD labels must be non-empty")
+    if np.any((labels != 0) & (labels != 1)):
+        raise ValueError("SMD labels must be binary")
+    return labels
