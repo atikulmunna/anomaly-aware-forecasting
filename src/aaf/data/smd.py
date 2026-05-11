@@ -53,6 +53,19 @@ def list_smd_machine_ids(root: Path) -> tuple[str, ...]:
     return tuple(sorted(train_ids & test_ids & label_ids))
 
 
+def load_smd_machine(root: Path, machine_id: str) -> SMDMachineSplit:
+    """Load one machine split from a standard SMD directory tree."""
+
+    split = SMDMachineSplit(
+        machine_id=machine_id,
+        train=load_smd_matrix(root / "train" / f"{machine_id}.txt"),
+        test=load_smd_matrix(root / "test" / f"{machine_id}.txt"),
+        test_labels=load_smd_labels(root / "test_label" / f"{machine_id}.txt"),
+    )
+    split.validate()
+    return split
+
+
 def _machine_ids(directory: Path) -> set[str]:
     return {path.stem for path in directory.iterdir() if path.is_file() and path.suffix == ".txt"}
 

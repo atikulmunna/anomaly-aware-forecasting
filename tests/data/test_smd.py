@@ -3,7 +3,13 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from aaf.data.smd import SMDMachineSplit, list_smd_machine_ids, load_smd_labels, load_smd_matrix
+from aaf.data.smd import (
+    SMDMachineSplit,
+    list_smd_machine_ids,
+    load_smd_labels,
+    load_smd_machine,
+    load_smd_matrix,
+)
 
 
 def write_smd_fixture(root: Path, machine_id: str = "machine-1-1") -> None:
@@ -78,3 +84,15 @@ def test_smd_machine_split_rejects_label_length_mismatch() -> None:
 
     with pytest.raises(ValueError, match="test_labels"):
         split.validate()
+
+
+def test_load_smd_machine_reads_standard_directory_tree(tmp_path) -> None:
+    write_smd_fixture(tmp_path, "machine-1-1")
+    (tmp_path / "test_label" / "machine-1-1.txt").write_text("0\n1\n", encoding="utf-8")
+
+    split = load_smd_machine(tmp_path, "machine-1-1")
+
+    assert split.machine_id == "machine-1-1"
+    assert split.train.shape == (2, 2)
+    assert split.test.shape == (2, 2)
+    assert split.test_labels.tolist() == [0, 1]
