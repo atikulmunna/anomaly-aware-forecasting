@@ -8,7 +8,7 @@ from pathlib import Path
 import numpy as np
 
 from aaf.data.preprocessing import Standardizer
-from aaf.data.synthetic import FloatArray, IntArray
+from aaf.data.synthetic import FloatArray, IntArray, SyntheticSeries
 
 
 @dataclass(frozen=True)
@@ -152,6 +152,24 @@ def prepare_smd_machine(
     )
     prepared.validate()
     return prepared, standardizer
+
+
+def make_smd_series(
+    observations: FloatArray,
+    anomaly_labels: IntArray,
+    *,
+    config_id: str,
+) -> SyntheticSeries:
+    """Wrap SMD arrays in the common series container with a dummy regime label."""
+
+    series = SyntheticSeries(
+        observations=np.asarray(observations, dtype=np.float64),
+        regime_labels=np.zeros(observations.shape[0], dtype=np.int64),
+        anomaly_labels=np.asarray(anomaly_labels, dtype=np.int64),
+        config_id=config_id,
+    )
+    series.validate()
+    return series
 
 
 def _machine_ids(directory: Path) -> set[str]:

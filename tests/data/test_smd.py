@@ -12,6 +12,7 @@ from aaf.data.smd import (
     load_smd_machine,
     load_smd_machines,
     load_smd_matrix,
+    make_smd_series,
     prepare_smd_machine,
     standardize_smd_machine,
 )
@@ -178,3 +179,15 @@ def test_prepare_smd_machine_splits_validation_from_training_tail() -> None:
     assert prepared.validation.shape[0] == 3
     assert prepared.validation_labels.tolist() == [0, 0, 0]
     assert standardizer.mean.shape == (2,)
+
+
+def test_make_smd_series_uses_dummy_regime_labels() -> None:
+    series = make_smd_series(
+        np.ones((3, 2)),
+        np.array([0, 1, 0]),
+        config_id="machine-1-1-test",
+    )
+
+    assert series.config_id == "machine-1-1-test"
+    assert series.regime_labels.tolist() == [0, 0, 0]
+    assert series.anomaly_labels.tolist() == [0, 1, 0]
