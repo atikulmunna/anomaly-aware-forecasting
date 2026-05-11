@@ -35,6 +35,31 @@ class SMDMachineSplit:
             raise ValueError("test labels must be binary")
 
 
+@dataclass(frozen=True)
+class SMDPreparedMachine:
+    """Standardized train/validation/test arrays for one SMD machine."""
+
+    machine_id: str
+    train: FloatArray
+    validation: FloatArray
+    test: FloatArray
+    validation_labels: IntArray
+    test_labels: IntArray
+
+    def validate(self) -> None:
+        if self.train.ndim != 2 or self.validation.ndim != 2 or self.test.ndim != 2:
+            raise ValueError("prepared SMD observations must have shape (T, D)")
+        if (
+            self.train.shape[1] != self.validation.shape[1]
+            or self.train.shape[1] != self.test.shape[1]
+        ):
+            raise ValueError("prepared SMD channel counts must match")
+        if self.validation_labels.shape != (self.validation.shape[0],):
+            raise ValueError("validation_labels must match validation length")
+        if self.test_labels.shape != (self.test.shape[0],):
+            raise ValueError("test_labels must match test length")
+
+
 def list_smd_machine_ids(root: Path) -> tuple[str, ...]:
     """Return machine ids that have train, test, and test-label files."""
 
@@ -100,6 +125,33 @@ def standardize_smd_machine(
     )
     standardized.validate()
     return standardized
+
+
+def prepare_smd_machine(
+    split: SMDMachineSplit,
+    *,
+    validation_fraction: float = 0.2,
+) -> tuple[SMDPreparedMachine, Standardizer]:
+    """Standardize one SMD machine and carve validation from the training tail."""
+
+    if not 0.0 < validation_fraction < 1.0:
+        raise ValueError("validation_fraction must be in (0, 1)")
+    standardizer = fit_smd_standardizer(split)
+    standardized = standardize_smd_machine(split, standardizer)
+    validation_length = max(1, int(round(standardized.train.shape[0] * validation_fraction)))
+    if validation_length >= standardized.train.shape[0]:
+        raise ValueError("validation split leaves no training observations")
+    train_end = standardized.train.shape[0] - validation_length
+    prepared = SMDPreparedMachine(
+        machine_id=standardized.machine_id,
+        train=standardized.train[:train_end],
+        validation=standardized.train[train_end:],
+        test=standardized.test,
+        validation_labels=np.zeros(validation_length, dtype=np.int64),
+        test_labels=standardized.test_labels,
+    )
+    prepared.validate()
+    return prepared, standardizer
 
 
 def _machine_ids(directory: Path) -> set[str]:

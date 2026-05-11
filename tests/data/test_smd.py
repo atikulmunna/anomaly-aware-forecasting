@@ -5,12 +5,14 @@ import pytest
 
 from aaf.data.smd import (
     SMDMachineSplit,
+    SMDPreparedMachine,
     fit_smd_standardizer,
     list_smd_machine_ids,
     load_smd_labels,
     load_smd_machine,
     load_smd_machines,
     load_smd_matrix,
+    prepare_smd_machine,
     standardize_smd_machine,
 )
 
@@ -147,3 +149,32 @@ def test_standardize_smd_machine_preserves_labels() -> None:
     assert standardized.machine_id == split.machine_id
     assert standardized.test_labels.tolist() == [0, 1]
     assert standardized.train.mean() == pytest.approx(0.0)
+
+
+def test_smd_prepared_machine_validates_split_lengths() -> None:
+    prepared = SMDPreparedMachine(
+        machine_id="machine-1-1",
+        train=np.ones((4, 2)),
+        validation=np.ones((2, 2)),
+        test=np.ones((3, 2)),
+        validation_labels=np.zeros(2, dtype=np.int64),
+        test_labels=np.array([0, 1, 0]),
+    )
+
+    prepared.validate()
+
+
+def test_prepare_smd_machine_splits_validation_from_training_tail() -> None:
+    split = SMDMachineSplit(
+        machine_id="machine-1-1",
+        train=np.arange(20, dtype=np.float64).reshape(10, 2),
+        test=np.ones((4, 2)),
+        test_labels=np.array([0, 1, 0, 0]),
+    )
+
+    prepared, standardizer = prepare_smd_machine(split, validation_fraction=0.3)
+
+    assert prepared.train.shape[0] == 7
+    assert prepared.validation.shape[0] == 3
+    assert prepared.validation_labels.tolist() == [0, 0, 0]
+    assert standardizer.mean.shape == (2,)
