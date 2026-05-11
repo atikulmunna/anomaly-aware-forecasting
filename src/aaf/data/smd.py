@@ -7,6 +7,7 @@ from pathlib import Path
 
 import numpy as np
 
+from aaf.data.preprocessing import Standardizer
 from aaf.data.synthetic import FloatArray, IntArray
 
 
@@ -76,6 +77,29 @@ def load_smd_machines(
     if len(selected_ids) == 0:
         raise ValueError("at least one SMD machine id is required")
     return tuple(load_smd_machine(root, machine_id) for machine_id in selected_ids)
+
+
+def fit_smd_standardizer(split: SMDMachineSplit) -> Standardizer:
+    """Fit a per-machine scaler using the SMD training split only."""
+
+    split.validate()
+    return Standardizer.fit(split.train)
+
+
+def standardize_smd_machine(
+    split: SMDMachineSplit,
+    standardizer: Standardizer,
+) -> SMDMachineSplit:
+    """Apply a fitted scaler to train and test observations without touching labels."""
+
+    standardized = SMDMachineSplit(
+        machine_id=split.machine_id,
+        train=standardizer.transform(split.train),
+        test=standardizer.transform(split.test),
+        test_labels=split.test_labels.copy(),
+    )
+    standardized.validate()
+    return standardized
 
 
 def _machine_ids(directory: Path) -> set[str]:

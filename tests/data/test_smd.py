@@ -5,11 +5,13 @@ import pytest
 
 from aaf.data.smd import (
     SMDMachineSplit,
+    fit_smd_standardizer,
     list_smd_machine_ids,
     load_smd_labels,
     load_smd_machine,
     load_smd_machines,
     load_smd_matrix,
+    standardize_smd_machine,
 )
 
 
@@ -117,3 +119,31 @@ def test_load_smd_machines_accepts_explicit_subset(tmp_path) -> None:
     splits = load_smd_machines(tmp_path, ("machine-1-2",))
 
     assert [split.machine_id for split in splits] == ["machine-1-2"]
+
+
+def test_fit_smd_standardizer_uses_train_split_only() -> None:
+    split = SMDMachineSplit(
+        machine_id="machine-1-1",
+        train=np.array([[0.0], [2.0], [4.0]]),
+        test=np.array([[100.0]]),
+        test_labels=np.array([0]),
+    )
+
+    standardizer = fit_smd_standardizer(split)
+
+    assert standardizer.mean.tolist() == [2.0]
+
+
+def test_standardize_smd_machine_preserves_labels() -> None:
+    split = SMDMachineSplit(
+        machine_id="machine-1-1",
+        train=np.array([[0.0], [2.0], [4.0]]),
+        test=np.array([[2.0], [4.0]]),
+        test_labels=np.array([0, 1]),
+    )
+
+    standardized = standardize_smd_machine(split, fit_smd_standardizer(split))
+
+    assert standardized.machine_id == split.machine_id
+    assert standardized.test_labels.tolist() == [0, 1]
+    assert standardized.train.mean() == pytest.approx(0.0)
