@@ -1,8 +1,9 @@
 from pathlib import Path
 
+import numpy as np
 import pytest
 
-from aaf.data.smd import list_smd_machine_ids, load_smd_labels, load_smd_matrix
+from aaf.data.smd import SMDMachineSplit, list_smd_machine_ids, load_smd_labels, load_smd_matrix
 
 
 def write_smd_fixture(root: Path, machine_id: str = "machine-1-1") -> None:
@@ -54,3 +55,26 @@ def test_load_smd_labels_rejects_non_binary_values(tmp_path) -> None:
 
     with pytest.raises(ValueError, match="binary"):
         load_smd_labels(path)
+
+
+def test_smd_machine_split_validates_shapes() -> None:
+    split = SMDMachineSplit(
+        machine_id="machine-1-1",
+        train=np.ones((4, 2)),
+        test=np.ones((3, 2)),
+        test_labels=np.array([0, 1, 0]),
+    )
+
+    split.validate()
+
+
+def test_smd_machine_split_rejects_label_length_mismatch() -> None:
+    split = SMDMachineSplit(
+        machine_id="machine-1-1",
+        train=np.ones((4, 2)),
+        test=np.ones((3, 2)),
+        test_labels=np.array([0, 1]),
+    )
+
+    with pytest.raises(ValueError, match="test_labels"):
+        split.validate()

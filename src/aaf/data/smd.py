@@ -2,11 +2,36 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
 
 from aaf.data.synthetic import FloatArray, IntArray
+
+
+@dataclass(frozen=True)
+class SMDMachineSplit:
+    """Train/test arrays and test anomaly labels for one SMD machine."""
+
+    machine_id: str
+    train: FloatArray
+    test: FloatArray
+    test_labels: IntArray
+
+    def validate(self) -> None:
+        if not self.machine_id:
+            raise ValueError("machine_id must be non-empty")
+        if self.train.ndim != 2 or self.test.ndim != 2:
+            raise ValueError("SMD observations must have shape (T, D)")
+        if self.train.shape[1] != self.test.shape[1]:
+            raise ValueError("train and test channel counts must match")
+        if self.test_labels.shape != (self.test.shape[0],):
+            raise ValueError("test_labels must match test length")
+        if np.any(~np.isfinite(self.train)) or np.any(~np.isfinite(self.test)):
+            raise ValueError("SMD observations must be finite")
+        if np.any((self.test_labels != 0) & (self.test_labels != 1)):
+            raise ValueError("test labels must be binary")
 
 
 def list_smd_machine_ids(root: Path) -> tuple[str, ...]:
