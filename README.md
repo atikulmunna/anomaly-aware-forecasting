@@ -86,6 +86,33 @@ These diagnostics are intended to catch MDN pathologies early:
 - `std` reports predictive standard-deviation health, including tail values.
 - `mean_pairwise_distance` helps identify components with identical or near-identical means.
 
+## SMD Pipelines
+
+The SMD pipelines expect the standard directory layout:
+
+```text
+SMD/
+  train/<machine-id>.txt
+  test/<machine-id>.txt
+  test_label/<machine-id>.txt
+```
+
+Run the seasonal-naive baseline:
+
+```powershell
+aaf-smd-baseline C:\path\to\SMD runs\smd_baseline --machine-id machine-1-1
+```
+
+Run the joint regime-aware MDN-LSTM:
+
+```powershell
+aaf-smd-joint C:\path\to\SMD runs\smd_joint --machine-id machine-1-1 --epochs 5
+```
+
+Both commands fit standardization statistics on each machine's training split only, carve validation
+from the training tail, freeze threshold selection on validation scores, and write `metrics.json`,
+forecast artifacts, anomaly artifacts, and diagnostics into the selected run directory.
+
 ## Technology Stack
 
 - Python 3.10+
