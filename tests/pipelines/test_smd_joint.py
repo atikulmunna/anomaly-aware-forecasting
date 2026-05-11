@@ -6,6 +6,7 @@ import pytest
 from aaf.pipelines.smd_joint import (
     SMDJointConfig,
     build_smd_joint_datasets,
+    main,
     predict_smd_joint_splits,
     run_smd_joint,
     smd_joint_loss_config,
@@ -145,3 +146,39 @@ def test_run_smd_joint_writes_full_run_directory(tmp_path) -> None:
     assert report.forecast is not None
     assert report.anomaly is not None
     assert report.regime is not None
+
+
+def test_smd_joint_cli_writes_metrics(tmp_path) -> None:
+    dataset_root = tmp_path / "dataset"
+    output_dir = tmp_path / "run"
+    write_smd_fixture(dataset_root)
+
+    exit_code = main(
+        [
+            str(dataset_root),
+            str(output_dir),
+            "--machine-id",
+            "machine-1-1",
+            "--lookback",
+            "3",
+            "--validation-fraction",
+            "0.25",
+            "--n-regimes",
+            "2",
+            "--hidden-size",
+            "6",
+            "--n-components",
+            "2",
+            "--epochs",
+            "1",
+            "--batch-size",
+            "4",
+            "--learning-rate",
+            "0.01",
+            "--energy-samples",
+            "16",
+        ]
+    )
+
+    assert exit_code == 0
+    assert (output_dir / "metrics.json").exists()
