@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import numpy as np
 import pytest
 
 from aaf.pipelines.smd_joint import (
@@ -10,6 +11,9 @@ from aaf.pipelines.smd_joint import (
     smd_joint_model_config,
     smd_joint_training_config,
     train_smd_joint_model,
+    write_smd_joint_anomaly_artifact,
+    write_smd_joint_forecast_artifact,
+    write_smd_joint_regime_artifact,
 )
 
 
@@ -93,3 +97,24 @@ def test_train_smd_joint_model_returns_predictions(tmp_path) -> None:
     assert len(result.history.train_loss) == 1
     assert validation_prediction.forecast.weights.shape[0] == len(validation)
     assert test_prediction.regime_probs.shape == test.regime_labels.shape + (config.n_regimes,)
+
+
+def test_smd_joint_artifact_writers_emit_npz_files(tmp_path) -> None:
+    write_smd_fixture(tmp_path)
+    config = tiny_config(tmp_path)
+    train, validation, test, _standardizers = build_smd_joint_datasets(config)
+    result = train_smd_joint_model(train, validation, config)
+    _validation_prediction, test_prediction = predict_smd_joint_splits(result, validation, test)
+
+    write_smd_joint_forecast_artifact(
+        tmp_path / "forecast.npz",
+        test.targets,
+        test_prediction.forecast,
+    )
+    write_smd_joint_anomaly_artifact(tmp_path / "anomaly.npz", test, test_prediction.forecast)
+    write_smd_joint_regime_artifact(tmp_path / "regime.npz", test, test_prediction)
+
+    with np.load(tmp_path / "regime.npz") as artifact:
+        assert artifact["posterior_probs"].shape == test.regime_labels.shape + (config.n_regimes,)
+    assert (tmp_path / "forecast.npz").exists()
+    assert (tmp_path / "anomaly.npz").exists()

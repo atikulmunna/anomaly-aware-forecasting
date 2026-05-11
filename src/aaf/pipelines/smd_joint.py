@@ -5,8 +5,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+import numpy as np
+
 from aaf.data.preprocessing import Standardizer, WindowedDataset
 from aaf.data.smd import prepare_smd_windowed_datasets
+from aaf.data.synthetic import FloatArray
+from aaf.eval.forecasting import MixtureForecast, negative_log_likelihood_values
 from aaf.models.joint import JointMDNLSTMConfig
 from aaf.models.joint_loss import JointLossConfig
 from aaf.train.joint_loop import (
@@ -148,4 +152,46 @@ def predict_smd_joint_splits(
     return (
         predict_joint_mdn_lstm(result.model, validation_dataset),
         predict_joint_mdn_lstm(result.model, test_dataset),
+    )
+
+
+def write_smd_joint_forecast_artifact(
+    path: Path,
+    observed: FloatArray,
+    forecast: MixtureForecast,
+) -> None:
+    """Write a joint SMD forecast artifact compatible with aaf-evaluate."""
+
+    np.savez(
+        path,
+        observed=observed,
+        weights=forecast.weights,
+        means=forecast.means,
+        stds=forecast.stds,
+    )
+
+
+def write_smd_joint_anomaly_artifact(
+    path: Path,
+    dataset: WindowedDataset,
+    forecast: MixtureForecast,
+) -> None:
+    """Write joint SMD anomaly scores from forecast likelihoods."""
+
+    scores = np.mean(negative_log_likelihood_values(dataset.targets, forecast), axis=-1)
+    np.savez(path, scores=scores, labels=dataset.anomaly_labels)
+
+
+def write_smd_joint_regime_artifact(
+    path: Path,
+    dataset: WindowedDataset,
+    prediction: JointPrediction,
+) -> None:
+    """Write joint SMD regime predictions and posterior probabilities."""
+
+    np.savez(
+        path,
+        true_labels=dataset.regime_labels,
+        pred_labels=prediction.regime_labels,
+        posterior_probs=prediction.regime_probs,
     )
