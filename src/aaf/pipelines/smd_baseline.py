@@ -5,6 +5,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from aaf.data.preprocessing import Standardizer, WindowedDataset
+from aaf.data.smd import prepare_smd_windowed_datasets
+
 
 @dataclass(frozen=True)
 class SMDBaselineConfig:
@@ -31,3 +34,19 @@ class SMDBaselineConfig:
             raise ValueError("season_length must be positive")
         if self.energy_samples < 2:
             raise ValueError("energy_samples must be at least 2")
+
+
+def build_smd_baseline_datasets(
+    config: SMDBaselineConfig,
+) -> tuple[WindowedDataset, WindowedDataset, WindowedDataset, tuple[Standardizer, ...]]:
+    """Build SMD windowed datasets for the baseline pipeline."""
+
+    config.validate()
+    return prepare_smd_windowed_datasets(
+        config.root,
+        machine_ids=config.machine_ids,
+        validation_fraction=config.validation_fraction,
+        lookback=config.lookback,
+        horizon=config.horizon,
+        stride=config.stride,
+    )
