@@ -7,6 +7,7 @@ from aaf.pipelines.smd_baseline import (
     SMDBaselineConfig,
     build_smd_baseline_datasets,
     fit_smd_baseline,
+    main,
     run_smd_baseline,
     write_smd_anomaly_artifact,
     write_smd_forecast_artifact,
@@ -120,3 +121,27 @@ def test_run_smd_baseline_writes_evaluation_artifacts(tmp_path) -> None:
     assert expected.issubset({path.name for path in output_dir.iterdir()})
     assert report.forecast is not None
     assert report.anomaly is not None
+
+
+def test_smd_baseline_cli_writes_metrics(tmp_path) -> None:
+    dataset_root = tmp_path / "dataset"
+    output_dir = tmp_path / "run"
+    write_smd_fixture(dataset_root)
+
+    exit_code = main(
+        [
+            str(dataset_root),
+            str(output_dir),
+            "--machine-id",
+            "machine-1-1",
+            "--lookback",
+            "2",
+            "--validation-fraction",
+            "0.25",
+            "--energy-samples",
+            "16",
+        ]
+    )
+
+    assert exit_code == 0
+    assert (output_dir / "metrics.json").exists()

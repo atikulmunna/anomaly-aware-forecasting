@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import argparse
 import json
+from collections.abc import Sequence
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
@@ -105,6 +107,42 @@ def run_smd_baseline(
     )
 
 
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Run the SMD seasonal-naive baseline.")
+    parser.add_argument("root", type=Path)
+    parser.add_argument("output_dir", type=Path)
+    parser.add_argument("--machine-id", action="append", dest="machine_ids")
+    parser.add_argument("--validation-fraction", type=float, default=0.2)
+    parser.add_argument("--lookback", type=int, default=100)
+    parser.add_argument("--horizon", type=int, default=1)
+    parser.add_argument("--stride", type=int, default=1)
+    parser.add_argument("--season-length", type=int, default=1)
+    parser.add_argument("--energy-samples", type=int, default=128)
+    parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--overwrite", action="store_true")
+    return parser
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    args = build_parser().parse_args(argv)
+    run_smd_baseline(
+        args.output_dir,
+        SMDBaselineConfig(
+            root=args.root,
+            machine_ids=None if args.machine_ids is None else tuple(args.machine_ids),
+            validation_fraction=args.validation_fraction,
+            lookback=args.lookback,
+            horizon=args.horizon,
+            stride=args.stride,
+            season_length=args.season_length,
+            energy_samples=args.energy_samples,
+            seed=args.seed,
+        ),
+        overwrite=args.overwrite,
+    )
+    return 0
+
+
 def fit_smd_baseline(
     train_dataset: WindowedDataset,
     config: SMDBaselineConfig,
@@ -171,3 +209,7 @@ def _json_ready(value: Any) -> Any:
     if isinstance(value, list | tuple):
         return [_json_ready(item) for item in value]
     return value
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
