@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+import json
+from dataclasses import asdict, dataclass
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 
@@ -11,7 +13,9 @@ from aaf.baselines.forecasting import SeasonalNaiveForecaster
 from aaf.data.preprocessing import Standardizer, WindowedDataset
 from aaf.data.smd import prepare_smd_windowed_datasets
 from aaf.data.synthetic import FloatArray
+from aaf.eval.artifacts import write_mixture_diagnostics_json
 from aaf.eval.forecasting import MixtureForecast, negative_log_likelihood_values
+from aaf.eval.report import EvaluationReport, evaluate_run_directory
 
 
 @dataclass(frozen=True)
@@ -57,6 +61,50 @@ def build_smd_baseline_datasets(
     )
 
 
+def run_smd_baseline(
+    output_dir: Path,
+    config: SMDBaselineConfig,
+    *,
+    overwrite: bool = False,
+) -> EvaluationReport:
+    """Run the SMD seasonal-naive baseline and write evaluation artifacts."""
+
+    config.validate()
+    if output_dir.exists() and any(output_dir.iterdir()) and not overwrite:
+        raise FileExistsError(f"output directory is not empty: {output_dir}")
+    output_dir.mkdir(parents=True, exist_ok=True)
+    train, validation, test, standardizers = build_smd_baseline_datasets(config)
+    forecaster = fit_smd_baseline(train, config)
+    validation_forecast = forecaster.predict(validation.windows, horizon=config.horizon)
+    test_forecast = forecaster.predict(test.windows, horizon=config.horizon)
+
+    _write_config(output_dir / "config.json", config)
+    _write_standardizers(output_dir / "standardizers.npz", standardizers)
+    write_smd_forecast_artifact(output_dir / "forecast.npz", test.targets, test_forecast)
+    write_smd_anomaly_artifact(
+        output_dir / "anomaly_validation.npz",
+        validation,
+        validation_forecast,
+    )
+    write_smd_anomaly_artifact(output_dir / "anomaly_test.npz", test, test_forecast)
+    np.savez(
+        output_dir / "regime.npz",
+        true_labels=test.regime_labels,
+        pred_labels=np.zeros_like(test.regime_labels),
+    )
+    write_mixture_diagnostics_json(
+        output_dir / "mixture_diagnostics.json",
+        validation=validation_forecast,
+        test=test_forecast,
+    )
+    return evaluate_run_directory(
+        output_dir,
+        output_path=output_dir / "metrics.json",
+        energy_samples=config.energy_samples,
+        seed=config.seed,
+    )
+
+
 def fit_smd_baseline(
     train_dataset: WindowedDataset,
     config: SMDBaselineConfig,
@@ -98,3 +146,28 @@ def write_smd_anomaly_artifact(
 
 def _flatten_windows(dataset: WindowedDataset) -> FloatArray:
     return np.asarray(dataset.windows.reshape(-1, dataset.windows.shape[-1]), dtype=np.float64)
+
+
+def _write_standardizers(path: Path, standardizers: tuple[Standardizer, ...]) -> None:
+    np.savez(
+        path,
+        mean=np.stack([standardizer.mean for standardizer in standardizers], axis=0),
+        std=np.stack([standardizer.std for standardizer in standardizers], axis=0),
+    )
+
+
+def _write_config(path: Path, config: SMDBaselineConfig) -> None:
+    path.write_text(
+        json.dumps(_json_ready(asdict(config)), indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
+
+
+def _json_ready(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {str(key): _json_ready(item) for key, item in value.items()}
+    if isinstance(value, Path):
+        return str(value)
+    if isinstance(value, list | tuple):
+        return [_json_ready(item) for item in value]
+    return value

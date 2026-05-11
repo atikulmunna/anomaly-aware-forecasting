@@ -7,6 +7,7 @@ from aaf.pipelines.smd_baseline import (
     SMDBaselineConfig,
     build_smd_baseline_datasets,
     fit_smd_baseline,
+    run_smd_baseline,
     write_smd_anomaly_artifact,
     write_smd_forecast_artifact,
 )
@@ -88,3 +89,34 @@ def test_smd_baseline_artifact_writers_emit_npz_files(tmp_path) -> None:
     with np.load(tmp_path / "forecast.npz") as artifact:
         assert artifact["observed"].shape == validation.targets.shape
     assert (tmp_path / "anomaly.npz").exists()
+
+
+def test_run_smd_baseline_writes_evaluation_artifacts(tmp_path) -> None:
+    dataset_root = tmp_path / "dataset"
+    output_dir = tmp_path / "run"
+    write_smd_fixture(dataset_root)
+
+    report = run_smd_baseline(
+        output_dir,
+        SMDBaselineConfig(
+            root=dataset_root,
+            lookback=2,
+            horizon=1,
+            validation_fraction=0.25,
+            energy_samples=16,
+        ),
+    )
+
+    expected = {
+        "config.json",
+        "standardizers.npz",
+        "forecast.npz",
+        "anomaly_validation.npz",
+        "anomaly_test.npz",
+        "regime.npz",
+        "mixture_diagnostics.json",
+        "metrics.json",
+    }
+    assert expected.issubset({path.name for path in output_dir.iterdir()})
+    assert report.forecast is not None
+    assert report.anomaly is not None
