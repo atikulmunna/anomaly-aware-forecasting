@@ -47,6 +47,14 @@ class DetectionDelay:
     detected: int
 
 
+@dataclass(frozen=True)
+class BinaryConfusion:
+    true_positive: int
+    false_positive: int
+    true_negative: int
+    false_negative: int
+
+
 def binary_ranges(labels: ArrayLike) -> list[Range]:
     """Convert a one-dimensional binary label sequence into half-open ranges."""
 
@@ -73,6 +81,21 @@ def threshold_scores(scores: ArrayLike, threshold: float) -> BoolArray:
     if np.any(~np.isfinite(score_array)):
         raise ValueError("scores must be finite")
     return np.asarray(score_array >= threshold, dtype=np.bool_)
+
+
+def binary_confusion(true_labels: ArrayLike, pred_labels: ArrayLike) -> BinaryConfusion:
+    """Return binary confusion counts for one-dimensional anomaly labels."""
+
+    true = _binary_array(true_labels, name="true_labels")
+    pred = _binary_array(pred_labels, name="pred_labels")
+    if true.shape != pred.shape:
+        raise ValueError("true_labels and pred_labels must have the same shape")
+    return BinaryConfusion(
+        true_positive=int(np.sum(true & pred)),
+        false_positive=int(np.sum(~true & pred)),
+        true_negative=int(np.sum(~true & ~pred)),
+        false_negative=int(np.sum(true & ~pred)),
+    )
 
 
 def range_precision_recall(true_labels: ArrayLike, pred_labels: ArrayLike) -> RangeMetrics:

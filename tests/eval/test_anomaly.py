@@ -5,6 +5,7 @@ import pytest
 
 from aaf.eval.anomaly import (
     Range,
+    binary_confusion,
     binary_ranges,
     detection_delay,
     false_alarm_rate_per_1000,
@@ -45,6 +46,18 @@ def test_threshold_scores_marks_large_scores_as_anomalous() -> None:
     scores = np.array([0.1, 0.5, 0.9])
 
     assert threshold_scores(scores, 0.5).tolist() == [False, True, True]
+
+
+def test_binary_confusion_counts_predictions() -> None:
+    counts = binary_confusion(
+        np.array([1, 0, 1, 0]),
+        np.array([1, 1, 0, 0]),
+    )
+
+    assert counts.true_positive == 1
+    assert counts.false_positive == 1
+    assert counts.true_negative == 1
+    assert counts.false_negative == 1
 
 
 def test_select_threshold_uses_range_f1_objective() -> None:
