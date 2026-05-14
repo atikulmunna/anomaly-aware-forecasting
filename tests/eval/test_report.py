@@ -95,6 +95,8 @@ def test_evaluate_run_directory_writes_metrics_json(tmp_path) -> None:
     assert saved["forecast"]["nll"] == pytest.approx(report.forecast.nll)
     assert saved["forecast"]["diagnostics"]["active_components_1pct"] == 1
     assert saved["anomaly"]["threshold"] == pytest.approx(0.7)
+    assert saved["anomaly"]["threshold_free"]["vus_pr"] == pytest.approx(1.0)
+    assert saved["anomaly"]["threshold_free"]["vus_roc"] == pytest.approx(1.0)
     assert saved["regime"]["adjusted_rand_index"] == pytest.approx(1.0)
 
 
