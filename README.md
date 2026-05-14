@@ -86,6 +86,14 @@ These diagnostics are intended to catch MDN pathologies early:
 - `std` reports predictive standard-deviation health, including tail values.
 - `mean_pairwise_distance` helps identify components with identical or near-identical means.
 
+Anomaly reports include both validation-selected operating-point metrics and threshold-free
+summaries:
+
+- `threshold` is selected on validation scores by maximizing range-based F1.
+- `test` reports range precision, recall, and F1 at the frozen validation threshold.
+- `threshold_free.average_precision` and `threshold_free.roc_auc` are pointwise PR/ROC areas.
+- `threshold_free.vus_pr` and `threshold_free.vus_roc` are range-aware threshold-sweep areas.
+
 ## SMD Pipelines
 
 The SMD pipelines expect the standard directory layout:
