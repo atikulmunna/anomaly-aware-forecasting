@@ -257,6 +257,21 @@ def false_alarm_rate_per_1000(true_labels: ArrayLike, pred_labels: ArrayLike) ->
     return float(false_starts * 1000.0 / stable_count)
 
 
+def trapezoidal_area(x_values: ArrayLike, y_values: ArrayLike) -> float:
+    """Integrate y over x after sorting by x."""
+
+    x = np.asarray(x_values, dtype=np.float64)
+    y = np.asarray(y_values, dtype=np.float64)
+    if x.ndim != 1 or y.ndim != 1:
+        raise ValueError("x_values and y_values must be one-dimensional")
+    if x.shape != y.shape:
+        raise ValueError("x_values and y_values must have the same shape")
+    if np.any(~np.isfinite(x)) or np.any(~np.isfinite(y)):
+        raise ValueError("curve coordinates must be finite")
+    order = np.argsort(x, kind="stable")
+    return float(np.trapezoid(y[order], x[order]))
+
+
 def _binary_array(values: ArrayLike, *, name: str) -> BoolArray:
     array = np.asarray(values)
     if array.ndim != 1:

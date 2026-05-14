@@ -15,6 +15,7 @@ from aaf.eval.anomaly import (
     select_threshold_by_range_f1,
     threshold_candidates,
     threshold_scores,
+    trapezoidal_area,
 )
 
 
@@ -111,6 +112,15 @@ def test_roc_curve_sweeps_thresholds() -> None:
     assert curve[0].false_positive_rate == pytest.approx(0.0)
     assert curve[-1].true_positive_rate == pytest.approx(1.0)
     assert curve[-1].false_positive_rate == pytest.approx(1.0)
+
+
+def test_trapezoidal_area_sorts_x_coordinates() -> None:
+    area = trapezoidal_area(
+        np.array([1.0, 0.0, 0.5]),
+        np.array([1.0, 0.0, 0.5]),
+    )
+
+    assert area == pytest.approx(0.5)
 
 
 def test_select_threshold_uses_range_f1_objective() -> None:
