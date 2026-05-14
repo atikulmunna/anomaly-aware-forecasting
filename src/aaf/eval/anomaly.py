@@ -54,6 +54,14 @@ class RocPoint:
 
 
 @dataclass(frozen=True)
+class RangeCurvePoint:
+    threshold: float
+    precision: float
+    recall: float
+    false_positive_rate: float
+
+
+@dataclass(frozen=True)
 class DetectionDelay:
     mean: float
     median: float
@@ -190,6 +198,17 @@ def roc_auc_score(scores: ArrayLike, true_labels: ArrayLike) -> float:
     return trapezoidal_area(
         np.array([point.false_positive_rate for point in curve], dtype=np.float64),
         np.array([point.true_positive_rate for point in curve], dtype=np.float64),
+    )
+
+
+def range_curve(scores: ArrayLike, true_labels: ArrayLike) -> tuple[RangeCurvePoint, ...]:
+    """Build a threshold-swept curve using range precision/recall and pointwise FPR."""
+
+    score_array = np.asarray(scores, dtype=np.float64)
+    _ = _binary_array(true_labels, name="true_labels")
+    return tuple(
+        _range_curve_point(score_array, true_labels, float(threshold))
+        for threshold in threshold_candidates(score_array)
     )
 
 
@@ -347,6 +366,22 @@ def _roc_point(scores: FloatArray, true_labels: ArrayLike, threshold: float) -> 
         threshold=threshold,
         false_positive_rate=counts.false_positive_rate,
         true_positive_rate=counts.true_positive_rate,
+    )
+
+
+def _range_curve_point(
+    scores: FloatArray,
+    true_labels: ArrayLike,
+    threshold: float,
+) -> RangeCurvePoint:
+    predictions = threshold_scores(scores, threshold)
+    metrics = range_precision_recall(true_labels, predictions)
+    counts = binary_confusion(true_labels, predictions)
+    return RangeCurvePoint(
+        threshold=threshold,
+        precision=metrics.precision,
+        recall=metrics.recall,
+        false_positive_rate=counts.false_positive_rate,
     )
 
 

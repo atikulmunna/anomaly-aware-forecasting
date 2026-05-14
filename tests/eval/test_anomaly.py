@@ -11,6 +11,7 @@ from aaf.eval.anomaly import (
     detection_delay,
     false_alarm_rate_per_1000,
     precision_recall_curve,
+    range_curve,
     range_precision_recall,
     roc_auc_score,
     roc_curve,
@@ -131,6 +132,17 @@ def test_pointwise_auc_scores_are_perfect_for_separable_scores() -> None:
 
     assert average_precision_score(scores, labels) == pytest.approx(1.0)
     assert roc_auc_score(scores, labels) == pytest.approx(1.0)
+
+
+def test_range_curve_uses_range_recall_and_pointwise_false_positive_rate() -> None:
+    curve = range_curve(
+        np.array([0.1, 0.9, 0.8, 0.2]),
+        np.array([0, 1, 1, 0]),
+    )
+
+    assert curve[0].recall == pytest.approx(0.0)
+    assert curve[-1].recall == pytest.approx(1.0)
+    assert curve[-1].false_positive_rate == pytest.approx(1.0)
 
 
 def test_select_threshold_uses_range_f1_objective() -> None:
