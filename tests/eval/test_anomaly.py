@@ -19,6 +19,8 @@ from aaf.eval.anomaly import (
     threshold_candidates,
     threshold_scores,
     trapezoidal_area,
+    vus_pr_score,
+    vus_roc_score,
 )
 
 
@@ -143,6 +145,14 @@ def test_range_curve_uses_range_recall_and_pointwise_false_positive_rate() -> No
     assert curve[0].recall == pytest.approx(0.0)
     assert curve[-1].recall == pytest.approx(1.0)
     assert curve[-1].false_positive_rate == pytest.approx(1.0)
+
+
+def test_vus_scores_are_perfect_for_separable_range_scores() -> None:
+    scores = np.array([0.1, 0.9, 0.8, 0.2])
+    labels = np.array([0, 1, 1, 0])
+
+    assert vus_pr_score(scores, labels) == pytest.approx(1.0)
+    assert vus_roc_score(scores, labels) == pytest.approx(1.0)
 
 
 def test_select_threshold_uses_range_f1_objective() -> None:

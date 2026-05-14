@@ -185,7 +185,7 @@ def average_precision_score(scores: ArrayLike, true_labels: ArrayLike) -> float:
     """Return trapezoidal area under the pointwise precision/recall curve."""
 
     curve = precision_recall_curve(scores, true_labels)
-    return trapezoidal_area(
+    return _precision_recall_area(
         np.array([point.recall for point in curve], dtype=np.float64),
         np.array([point.precision for point in curve], dtype=np.float64),
     )
@@ -209,6 +209,26 @@ def range_curve(scores: ArrayLike, true_labels: ArrayLike) -> tuple[RangeCurvePo
     return tuple(
         _range_curve_point(score_array, true_labels, float(threshold))
         for threshold in threshold_candidates(score_array)
+    )
+
+
+def vus_pr_score(scores: ArrayLike, true_labels: ArrayLike) -> float:
+    """Return area under the range-aware precision/recall threshold surface slice."""
+
+    curve = range_curve(scores, true_labels)
+    return _precision_recall_area(
+        np.array([point.recall for point in curve], dtype=np.float64),
+        np.array([point.precision for point in curve], dtype=np.float64),
+    )
+
+
+def vus_roc_score(scores: ArrayLike, true_labels: ArrayLike) -> float:
+    """Return area under the range-aware ROC threshold surface slice."""
+
+    curve = range_curve(scores, true_labels)
+    return trapezoidal_area(
+        np.array([point.false_positive_rate for point in curve], dtype=np.float64),
+        np.array([point.recall for point in curve], dtype=np.float64),
     )
 
 
@@ -383,6 +403,18 @@ def _range_curve_point(
         recall=metrics.recall,
         false_positive_rate=counts.false_positive_rate,
     )
+
+
+def _precision_recall_area(recall: FloatArray, precision: FloatArray) -> float:
+    order = np.argsort(recall, kind="stable")
+    sorted_recall = recall[order]
+    sorted_precision = precision[order]
+    unique_recall = np.unique(sorted_recall)
+    envelope = np.array(
+        [np.max(sorted_precision[sorted_recall >= value]) for value in unique_recall],
+        dtype=np.float64,
+    )
+    return trapezoidal_area(unique_recall, envelope)
 
 
 def _is_better(candidate: RangeMetrics, incumbent: RangeMetrics) -> bool:
