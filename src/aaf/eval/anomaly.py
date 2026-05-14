@@ -173,6 +173,26 @@ def roc_curve(scores: ArrayLike, true_labels: ArrayLike) -> tuple[RocPoint, ...]
     )
 
 
+def average_precision_score(scores: ArrayLike, true_labels: ArrayLike) -> float:
+    """Return trapezoidal area under the pointwise precision/recall curve."""
+
+    curve = precision_recall_curve(scores, true_labels)
+    return trapezoidal_area(
+        np.array([point.recall for point in curve], dtype=np.float64),
+        np.array([point.precision for point in curve], dtype=np.float64),
+    )
+
+
+def roc_auc_score(scores: ArrayLike, true_labels: ArrayLike) -> float:
+    """Return trapezoidal area under the pointwise ROC curve."""
+
+    curve = roc_curve(scores, true_labels)
+    return trapezoidal_area(
+        np.array([point.false_positive_rate for point in curve], dtype=np.float64),
+        np.array([point.true_positive_rate for point in curve], dtype=np.float64),
+    )
+
+
 def range_precision_recall(true_labels: ArrayLike, pred_labels: ArrayLike) -> RangeMetrics:
     """Compute overlap-based range precision, recall, and F1.
 

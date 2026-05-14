@@ -5,12 +5,14 @@ import pytest
 
 from aaf.eval.anomaly import (
     Range,
+    average_precision_score,
     binary_confusion,
     binary_ranges,
     detection_delay,
     false_alarm_rate_per_1000,
     precision_recall_curve,
     range_precision_recall,
+    roc_auc_score,
     roc_curve,
     select_threshold_by_range_f1,
     threshold_candidates,
@@ -121,6 +123,14 @@ def test_trapezoidal_area_sorts_x_coordinates() -> None:
     )
 
     assert area == pytest.approx(0.5)
+
+
+def test_pointwise_auc_scores_are_perfect_for_separable_scores() -> None:
+    scores = np.array([0.9, 0.8, 0.2, 0.1])
+    labels = np.array([1, 1, 0, 0])
+
+    assert average_precision_score(scores, labels) == pytest.approx(1.0)
+    assert roc_auc_score(scores, labels) == pytest.approx(1.0)
 
 
 def test_select_threshold_uses_range_f1_objective() -> None:
