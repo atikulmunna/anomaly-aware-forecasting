@@ -192,6 +192,18 @@ def test_threshold_free_metrics_handles_all_anomalies() -> None:
     assert 0.0 <= metrics.vus_roc <= 1.0
 
 
+def test_threshold_free_metrics_handles_tied_scores() -> None:
+    metrics = threshold_free_metrics(
+        np.array([0.5, 0.5, 0.5, 0.5]),
+        np.array([1, 0, 1, 0]),
+    )
+
+    assert metrics.average_precision == pytest.approx(0.5)
+    assert metrics.roc_auc == pytest.approx(0.5)
+    assert metrics.vus_pr == pytest.approx(0.5)
+    assert metrics.vus_roc == pytest.approx(0.5)
+
+
 def test_select_threshold_uses_range_f1_objective() -> None:
     scores = np.array([0.1, 0.8, 0.7, 0.2, 0.3])
     labels = np.array([0, 1, 1, 0, 0])

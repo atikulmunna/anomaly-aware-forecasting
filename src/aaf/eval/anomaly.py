@@ -380,8 +380,6 @@ def _f1(precision: float, recall: float) -> float:
 
 def _threshold_candidates(scores: FloatArray) -> FloatArray:
     unique = np.unique(scores)
-    if unique.size == 1:
-        return unique
     above_max = np.nextafter(unique[-1], np.inf)
     return np.concatenate(([above_max], unique[::-1]))
 
@@ -433,7 +431,13 @@ def _precision_recall_area(recall: FloatArray, precision: FloatArray) -> float:
         [np.max(sorted_precision[sorted_recall >= value]) for value in unique_recall],
         dtype=np.float64,
     )
-    return trapezoidal_area(unique_recall, envelope)
+    area = 0.0
+    previous_recall = 0.0
+    for value, precision_value in zip(unique_recall, envelope, strict=True):
+        if value > previous_recall:
+            area += float((value - previous_recall) * precision_value)
+            previous_recall = float(value)
+    return area
 
 
 def _is_better(candidate: RangeMetrics, incumbent: RangeMetrics) -> bool:
