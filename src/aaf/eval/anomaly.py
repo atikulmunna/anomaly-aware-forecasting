@@ -62,6 +62,14 @@ class RangeCurvePoint:
 
 
 @dataclass(frozen=True)
+class ThresholdFreeMetrics:
+    average_precision: float
+    roc_auc: float
+    vus_pr: float
+    vus_roc: float
+
+
+@dataclass(frozen=True)
 class DetectionDelay:
     mean: float
     median: float
@@ -229,6 +237,17 @@ def vus_roc_score(scores: ArrayLike, true_labels: ArrayLike) -> float:
     return trapezoidal_area(
         np.array([point.false_positive_rate for point in curve], dtype=np.float64),
         np.array([point.recall for point in curve], dtype=np.float64),
+    )
+
+
+def threshold_free_metrics(scores: ArrayLike, true_labels: ArrayLike) -> ThresholdFreeMetrics:
+    """Return pointwise and range-aware threshold-free anomaly metrics."""
+
+    return ThresholdFreeMetrics(
+        average_precision=average_precision_score(scores, true_labels),
+        roc_auc=roc_auc_score(scores, true_labels),
+        vus_pr=vus_pr_score(scores, true_labels),
+        vus_roc=vus_roc_score(scores, true_labels),
     )
 
 

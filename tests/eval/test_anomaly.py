@@ -17,6 +17,7 @@ from aaf.eval.anomaly import (
     roc_curve,
     select_threshold_by_range_f1,
     threshold_candidates,
+    threshold_free_metrics,
     threshold_scores,
     trapezoidal_area,
     vus_pr_score,
@@ -153,6 +154,18 @@ def test_vus_scores_are_perfect_for_separable_range_scores() -> None:
 
     assert vus_pr_score(scores, labels) == pytest.approx(1.0)
     assert vus_roc_score(scores, labels) == pytest.approx(1.0)
+
+
+def test_threshold_free_metrics_groups_pointwise_and_range_scores() -> None:
+    metrics = threshold_free_metrics(
+        np.array([0.1, 0.9, 0.8, 0.2]),
+        np.array([0, 1, 1, 0]),
+    )
+
+    assert metrics.average_precision == pytest.approx(1.0)
+    assert metrics.roc_auc == pytest.approx(1.0)
+    assert metrics.vus_pr == pytest.approx(1.0)
+    assert metrics.vus_roc == pytest.approx(1.0)
 
 
 def test_select_threshold_uses_range_f1_objective() -> None:
