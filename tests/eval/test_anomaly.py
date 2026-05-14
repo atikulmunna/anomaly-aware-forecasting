@@ -70,6 +70,16 @@ def test_binary_confusion_exposes_precision_and_recall() -> None:
     assert counts.recall == pytest.approx(0.5)
 
 
+def test_binary_confusion_exposes_roc_rates() -> None:
+    counts = binary_confusion(
+        np.array([1, 1, 0, 0]),
+        np.array([1, 0, 1, 0]),
+    )
+
+    assert counts.true_positive_rate == pytest.approx(0.5)
+    assert counts.false_positive_rate == pytest.approx(0.5)
+
+
 def test_select_threshold_uses_range_f1_objective() -> None:
     scores = np.array([0.1, 0.8, 0.7, 0.2, 0.3])
     labels = np.array([0, 1, 1, 0, 0])

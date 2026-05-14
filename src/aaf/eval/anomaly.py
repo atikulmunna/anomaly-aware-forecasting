@@ -68,6 +68,17 @@ class BinaryConfusion:
             return 1.0
         return float(self.true_positive / actual_positive)
 
+    @property
+    def true_positive_rate(self) -> float:
+        return self.recall
+
+    @property
+    def false_positive_rate(self) -> float:
+        actual_negative = self.false_positive + self.true_negative
+        if actual_negative == 0:
+            return 0.0
+        return float(self.false_positive / actual_negative)
+
 
 def binary_ranges(labels: ArrayLike) -> list[Range]:
     """Convert a one-dimensional binary label sequence into half-open ranges."""
