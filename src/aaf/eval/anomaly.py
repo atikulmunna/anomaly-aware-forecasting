@@ -40,6 +40,13 @@ class RangeMetrics:
 
 
 @dataclass(frozen=True)
+class PrecisionRecallPoint:
+    threshold: float
+    precision: float
+    recall: float
+
+
+@dataclass(frozen=True)
 class DetectionDelay:
     mean: float
     median: float
@@ -131,6 +138,20 @@ def binary_confusion(true_labels: ArrayLike, pred_labels: ArrayLike) -> BinaryCo
         false_positive=int(np.sum(~true & pred)),
         true_negative=int(np.sum(~true & ~pred)),
         false_negative=int(np.sum(true & ~pred)),
+    )
+
+
+def precision_recall_curve(
+    scores: ArrayLike,
+    true_labels: ArrayLike,
+) -> tuple[PrecisionRecallPoint, ...]:
+    """Build a threshold-swept pointwise precision/recall curve."""
+
+    score_array = np.asarray(scores, dtype=np.float64)
+    _ = _binary_array(true_labels, name="true_labels")
+    return tuple(
+        _precision_recall_point(score_array, true_labels, float(threshold))
+        for threshold in threshold_candidates(score_array)
     )
 
 
@@ -252,6 +273,19 @@ def _threshold_candidates(scores: FloatArray) -> FloatArray:
         return unique
     above_max = np.nextafter(unique[-1], np.inf)
     return np.concatenate(([above_max], unique[::-1]))
+
+
+def _precision_recall_point(
+    scores: FloatArray,
+    true_labels: ArrayLike,
+    threshold: float,
+) -> PrecisionRecallPoint:
+    counts = binary_confusion(true_labels, threshold_scores(scores, threshold))
+    return PrecisionRecallPoint(
+        threshold=threshold,
+        precision=counts.precision,
+        recall=counts.recall,
+    )
 
 
 def _is_better(candidate: RangeMetrics, incumbent: RangeMetrics) -> bool:

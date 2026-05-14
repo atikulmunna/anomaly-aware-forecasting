@@ -9,6 +9,7 @@ from aaf.eval.anomaly import (
     binary_ranges,
     detection_delay,
     false_alarm_rate_per_1000,
+    precision_recall_curve,
     range_precision_recall,
     select_threshold_by_range_f1,
     threshold_candidates,
@@ -86,6 +87,17 @@ def test_binary_confusion_exposes_roc_rates() -> None:
 
     assert counts.true_positive_rate == pytest.approx(0.5)
     assert counts.false_positive_rate == pytest.approx(0.5)
+
+
+def test_precision_recall_curve_sweeps_thresholds() -> None:
+    curve = precision_recall_curve(
+        np.array([0.9, 0.1, 0.8]),
+        np.array([1, 0, 1]),
+    )
+
+    assert curve[0].recall == pytest.approx(0.0)
+    assert curve[-1].precision == pytest.approx(2.0 / 3.0)
+    assert curve[-1].recall == pytest.approx(1.0)
 
 
 def test_select_threshold_uses_range_f1_objective() -> None:
