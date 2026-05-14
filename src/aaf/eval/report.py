@@ -13,10 +13,12 @@ from numpy.typing import NDArray
 from aaf.eval.anomaly import (
     DetectionDelay,
     RangeMetrics,
+    ThresholdFreeMetrics,
     detection_delay,
     false_alarm_rate_per_1000,
     range_precision_recall,
     select_threshold_by_range_f1,
+    threshold_free_metrics,
     threshold_scores,
 )
 from aaf.eval.diagnostics import MixtureDiagnostics, mixture_diagnostics
@@ -55,6 +57,7 @@ class AnomalyReport:
     threshold: float
     validation: RangeMetrics
     test: RangeMetrics
+    threshold_free: ThresholdFreeMetrics
     detection_delay: DetectionDelay
     false_alarm_rate_per_1000: float
 
@@ -121,6 +124,7 @@ def evaluate_anomaly(
         threshold=threshold,
         validation=validation_metrics,
         test=test_metrics,
+        threshold_free=threshold_free_metrics(test_scores, test_labels),
         detection_delay=detection_delay(test_labels, test_predictions),
         false_alarm_rate_per_1000=false_alarm_rate_per_1000(test_labels, test_predictions),
     )

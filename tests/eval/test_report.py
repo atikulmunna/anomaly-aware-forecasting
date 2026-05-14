@@ -46,6 +46,8 @@ def test_evaluate_anomaly_freezes_validation_threshold_for_test() -> None:
     assert report.threshold == pytest.approx(0.7)
     assert report.validation.f1 == pytest.approx(1.0)
     assert report.test.f1 == pytest.approx(1.0)
+    assert report.threshold_free.vus_pr == pytest.approx(1.0)
+    assert report.threshold_free.vus_roc == pytest.approx(1.0)
 
 
 def test_evaluate_regime_aligns_permuted_labels() -> None:
