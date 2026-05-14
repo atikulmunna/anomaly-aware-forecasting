@@ -11,6 +11,7 @@ from aaf.eval.anomaly import (
     false_alarm_rate_per_1000,
     precision_recall_curve,
     range_precision_recall,
+    roc_curve,
     select_threshold_by_range_f1,
     threshold_candidates,
     threshold_scores,
@@ -98,6 +99,18 @@ def test_precision_recall_curve_sweeps_thresholds() -> None:
     assert curve[0].recall == pytest.approx(0.0)
     assert curve[-1].precision == pytest.approx(2.0 / 3.0)
     assert curve[-1].recall == pytest.approx(1.0)
+
+
+def test_roc_curve_sweeps_thresholds() -> None:
+    curve = roc_curve(
+        np.array([0.9, 0.1, 0.8, 0.2]),
+        np.array([1, 0, 1, 0]),
+    )
+
+    assert curve[0].true_positive_rate == pytest.approx(0.0)
+    assert curve[0].false_positive_rate == pytest.approx(0.0)
+    assert curve[-1].true_positive_rate == pytest.approx(1.0)
+    assert curve[-1].false_positive_rate == pytest.approx(1.0)
 
 
 def test_select_threshold_uses_range_f1_objective() -> None:

@@ -47,6 +47,13 @@ class PrecisionRecallPoint:
 
 
 @dataclass(frozen=True)
+class RocPoint:
+    threshold: float
+    false_positive_rate: float
+    true_positive_rate: float
+
+
+@dataclass(frozen=True)
 class DetectionDelay:
     mean: float
     median: float
@@ -151,6 +158,17 @@ def precision_recall_curve(
     _ = _binary_array(true_labels, name="true_labels")
     return tuple(
         _precision_recall_point(score_array, true_labels, float(threshold))
+        for threshold in threshold_candidates(score_array)
+    )
+
+
+def roc_curve(scores: ArrayLike, true_labels: ArrayLike) -> tuple[RocPoint, ...]:
+    """Build a threshold-swept pointwise ROC curve."""
+
+    score_array = np.asarray(scores, dtype=np.float64)
+    _ = _binary_array(true_labels, name="true_labels")
+    return tuple(
+        _roc_point(score_array, true_labels, float(threshold))
         for threshold in threshold_candidates(score_array)
     )
 
@@ -285,6 +303,15 @@ def _precision_recall_point(
         threshold=threshold,
         precision=counts.precision,
         recall=counts.recall,
+    )
+
+
+def _roc_point(scores: FloatArray, true_labels: ArrayLike, threshold: float) -> RocPoint:
+    counts = binary_confusion(true_labels, threshold_scores(scores, threshold))
+    return RocPoint(
+        threshold=threshold,
+        false_positive_rate=counts.false_positive_rate,
+        true_positive_rate=counts.true_positive_rate,
     )
 
 
