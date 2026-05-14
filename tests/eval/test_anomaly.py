@@ -11,6 +11,7 @@ from aaf.eval.anomaly import (
     false_alarm_rate_per_1000,
     range_precision_recall,
     select_threshold_by_range_f1,
+    threshold_candidates,
     threshold_scores,
 )
 
@@ -46,6 +47,13 @@ def test_threshold_scores_marks_large_scores_as_anomalous() -> None:
     scores = np.array([0.1, 0.5, 0.9])
 
     assert threshold_scores(scores, 0.5).tolist() == [False, True, True]
+
+
+def test_threshold_candidates_include_above_max_and_descending_scores() -> None:
+    candidates = threshold_candidates(np.array([0.2, 0.8, 0.2]))
+
+    assert candidates[0] > 0.8
+    assert candidates[1:].tolist() == [0.8, 0.2]
 
 
 def test_binary_confusion_counts_predictions() -> None:

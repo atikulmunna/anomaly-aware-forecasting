@@ -108,6 +108,17 @@ def threshold_scores(scores: ArrayLike, threshold: float) -> BoolArray:
     return np.asarray(score_array >= threshold, dtype=np.bool_)
 
 
+def threshold_candidates(scores: ArrayLike) -> FloatArray:
+    """Return deterministic score thresholds for threshold-free sweeps."""
+
+    score_array = np.asarray(scores, dtype=np.float64)
+    if score_array.ndim != 1:
+        raise ValueError("scores must be one-dimensional")
+    if np.any(~np.isfinite(score_array)):
+        raise ValueError("scores must be finite")
+    return _threshold_candidates(score_array)
+
+
 def binary_confusion(true_labels: ArrayLike, pred_labels: ArrayLike) -> BinaryConfusion:
     """Return binary confusion counts for one-dimensional anomaly labels."""
 
