@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any, Protocol
 
 from aaf.eval.report import EvaluationReport
+from aaf.experiments.compare import collect_run_rows, write_comparison_csv, write_comparison_json
 from aaf.experiments.manifest import RunManifest, write_run_manifest
 from aaf.pipelines.joint_synthetic import JointSyntheticConfig, run_joint_synthetic
 from aaf.pipelines.mdn_synthetic import MDNSyntheticConfig, run_mdn_synthetic
@@ -103,6 +104,7 @@ def run_experiment_suite(
     suite: ExperimentSuite,
     output_root: Path,
     *,
+    compare_output: Path | None = None,
     overwrite: bool = False,
 ) -> SuiteRunResult:
     """Run every job in a suite and write manifests beside run artifacts."""
@@ -122,6 +124,8 @@ def run_experiment_suite(
                 notes=job.notes,
             ),
         )
+    if compare_output is not None:
+        _write_comparison(compare_output, output_root)
     return SuiteRunResult(output_root=output_root, reports=reports)
 
 
@@ -167,3 +171,13 @@ def _seed_from_params(params: dict[str, Any]) -> int | None:
     if "seed" not in params or params["seed"] is None:
         return None
     return int(params["seed"])
+
+
+def _write_comparison(path: Path, output_root: Path) -> None:
+    rows = collect_run_rows(output_root)
+    if path.suffix.lower() == ".json":
+        write_comparison_json(path, rows)
+    elif path.suffix.lower() == ".csv":
+        write_comparison_csv(path, rows)
+    else:
+        raise ValueError("suite comparison output must end with .csv or .json")

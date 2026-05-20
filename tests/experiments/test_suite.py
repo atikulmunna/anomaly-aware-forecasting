@@ -118,3 +118,32 @@ def test_run_experiment_suite_writes_manifests(tmp_path) -> None:
     assert manifest.run_id == "smd-baseline"
     assert manifest.seed == 11
     assert manifest.notes == "tiny"
+
+
+def test_run_experiment_suite_writes_comparison_output(tmp_path) -> None:
+    dataset_root = tmp_path / "dataset"
+    write_smd_fixture(dataset_root)
+    suite = ExperimentSuite(
+        name="smoke",
+        jobs=(
+            SuiteJob(
+                run_id="smd-baseline",
+                pipeline="smd-baseline",
+                dataset="smd",
+                params={
+                    "root": str(dataset_root),
+                    "lookback": 3,
+                    "validation_fraction": 0.25,
+                    "energy_samples": 16,
+                },
+            ),
+        ),
+    )
+
+    run_experiment_suite(
+        suite,
+        tmp_path / "runs",
+        compare_output=tmp_path / "reports" / "comparison.csv",
+    )
+
+    assert (tmp_path / "reports" / "comparison.csv").exists()
