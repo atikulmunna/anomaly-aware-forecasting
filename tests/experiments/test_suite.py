@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 
 import pytest
 
@@ -66,6 +67,13 @@ def test_load_experiment_suite_reads_jobs(tmp_path) -> None:
     assert suite.name == "smoke"
     assert suite.jobs[0].run_id == "synthetic-baseline"
     assert suite.jobs[0].params == {"seed": 3}
+
+
+def test_checked_in_smoke_suite_loads() -> None:
+    suite = load_experiment_suite(Path("experiments/smoke.synthetic.json"))
+
+    assert suite.name == "synthetic-smoke"
+    assert [job.pipeline for job in suite.jobs] == ["synthetic-baseline", "synthetic-joint"]
 
 
 def test_run_suite_job_dispatches_smd_baseline(tmp_path) -> None:

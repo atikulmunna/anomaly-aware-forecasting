@@ -1,0 +1,47 @@
+{
+  "name": "synthetic-smoke",
+  "jobs": [
+    {
+      "run_id": "synthetic-baseline-smoke",
+      "pipeline": "synthetic-baseline",
+      "dataset": "synthetic",
+      "notes": "Tiny seasonal-naive smoke run",
+      "params": {
+        "seed": 7,
+        "n_train_configs": 1,
+        "n_validation_configs": 1,
+        "n_test_configs": 1,
+        "series_length": 80,
+        "burn_in": 10,
+        "lookback": 8,
+        "horizon": 1,
+        "stride": 4,
+        "season_length": 1,
+        "energy_samples": 16
+      }
+    },
+    {
+      "run_id": "synthetic-joint-smoke",
+      "pipeline": "synthetic-joint",
+      "dataset": "synthetic",
+      "notes": "Tiny joint-model smoke run",
+      "params": {
+        "seed": 8,
+        "n_train_configs": 1,
+        "n_validation_configs": 1,
+        "n_test_configs": 1,
+        "series_length": 80,
+        "burn_in": 10,
+        "lookback": 8,
+        "horizon": 1,
+        "stride": 4,
+        "hidden_size": 6,
+        "n_components": 2,
+        "epochs": 1,
+        "batch_size": 8,
+        "learning_rate": 0.01,
+        "energy_samples": 16
+      }
+    }
+  ]
+}
