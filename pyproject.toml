@@ -15,6 +15,7 @@ dependencies = [
 ]
 
 [project.scripts]
+aaf-compare-runs = "aaf.experiments.cli:main"
 aaf-evaluate = "aaf.eval.cli:main"
 aaf-joint-synthetic = "aaf.pipelines.joint_synthetic:main"
 aaf-mdn-synthetic = "aaf.pipelines.mdn_synthetic:main"
