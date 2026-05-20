@@ -5,7 +5,35 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Protocol
+
+from aaf.eval.report import EvaluationReport
+from aaf.pipelines.joint_synthetic import JointSyntheticConfig, run_joint_synthetic
+from aaf.pipelines.mdn_synthetic import MDNSyntheticConfig, run_mdn_synthetic
+from aaf.pipelines.smd_baseline import SMDBaselineConfig, run_smd_baseline
+from aaf.pipelines.smd_joint import SMDJointConfig, run_smd_joint
+from aaf.pipelines.synthetic_baseline import SyntheticBaselineConfig, run_synthetic_baseline
+
+
+class PipelineRunFunction(Protocol):
+    def __call__(
+        self,
+        output_dir: Path,
+        config: Any,
+        *,
+        overwrite: bool = False,
+    ) -> EvaluationReport: ...
+
+
+PipelineRunner = tuple[type[Any], PipelineRunFunction]
+
+PIPELINES: dict[str, PipelineRunner] = {
+    "synthetic-baseline": (SyntheticBaselineConfig, run_synthetic_baseline),
+    "synthetic-mdn": (MDNSyntheticConfig, run_mdn_synthetic),
+    "synthetic-joint": (JointSyntheticConfig, run_joint_synthetic),
+    "smd-baseline": (SMDBaselineConfig, run_smd_baseline),
+    "smd-joint": (SMDJointConfig, run_smd_joint),
+}
 
 
 @dataclass(frozen=True)
@@ -62,6 +90,22 @@ def load_experiment_suite(path: Path) -> ExperimentSuite:
     return suite
 
 
+def run_suite_job(
+    job: SuiteJob,
+    output_root: Path,
+    *,
+    overwrite: bool = False,
+) -> EvaluationReport:
+    """Run one suite job and return its evaluation report."""
+
+    job.validate()
+    if job.pipeline not in PIPELINES:
+        raise ValueError(f"unsupported pipeline: {job.pipeline}")
+    config_type, runner = PIPELINES[job.pipeline]
+    config = config_type(**_normalize_config_params(job.params))
+    return runner(output_root / job.run_id, config, overwrite=overwrite)
+
+
 def _suite_job_from_payload(payload: object) -> SuiteJob:
     if not isinstance(payload, dict):
         raise ValueError("suite job must be a JSON object")
@@ -75,3 +119,10 @@ def _suite_job_from_payload(payload: object) -> SuiteJob:
         params=dict(raw_params),
         notes=None if payload.get("notes") is None else str(payload["notes"]),
     )
+
+
+def _normalize_config_params(params: dict[str, Any]) -> dict[str, Any]:
+    normalized = dict(params)
+    if "root" in normalized:
+        normalized["root"] = Path(str(normalized["root"]))
+    return normalized
