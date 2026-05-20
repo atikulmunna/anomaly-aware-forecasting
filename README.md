@@ -121,6 +121,19 @@ Both commands fit standardization statistics on each machine's training split on
 from the training tail, freeze threshold selection on validation scores, and write `metrics.json`,
 forecast artifacts, anomaly artifacts, and diagnostics into the selected run directory.
 
+## Comparing Runs
+
+Archived run directories can be compared from their `metrics.json` files:
+
+```powershell
+aaf-compare-runs runs --output reports/comparison.csv
+aaf-compare-runs runs --output reports/comparison.json
+```
+
+If a run directory contains `manifest.json`, fields such as `run_id`, `pipeline`, `dataset`, and
+`seed` are included as columns. Nested metrics are flattened with dotted names such as
+`forecast.nll`, `anomaly.test.f1`, and `anomaly.threshold_free.vus_pr`.
+
 ## Technology Stack
 
 - Python 3.10+
