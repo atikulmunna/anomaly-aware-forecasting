@@ -1,0 +1,77 @@
+"""Experiment suite execution for reproducible run matrices."""
+
+from __future__ import annotations
+
+import json
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
+
+
+@dataclass(frozen=True)
+class SuiteJob:
+    """One pipeline invocation in an experiment suite."""
+
+    run_id: str
+    pipeline: str
+    dataset: str
+    params: dict[str, Any]
+    notes: str | None = None
+
+    def validate(self) -> None:
+        if not self.run_id:
+            raise ValueError("run_id must be non-empty")
+        if not self.pipeline:
+            raise ValueError("pipeline must be non-empty")
+        if not self.dataset:
+            raise ValueError("dataset must be non-empty")
+
+
+@dataclass(frozen=True)
+class ExperimentSuite:
+    """Named collection of experiment jobs."""
+
+    name: str
+    jobs: tuple[SuiteJob, ...]
+
+    def validate(self) -> None:
+        if not self.name:
+            raise ValueError("suite name must be non-empty")
+        if len(self.jobs) == 0:
+            raise ValueError("suite must contain at least one job")
+        seen_run_ids: set[str] = set()
+        for job in self.jobs:
+            job.validate()
+            if job.run_id in seen_run_ids:
+                raise ValueError(f"duplicate run_id in suite: {job.run_id}")
+            seen_run_ids.add(job.run_id)
+
+
+def load_experiment_suite(path: Path) -> ExperimentSuite:
+    """Load an experiment suite JSON file."""
+
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError("experiment suite must be a JSON object")
+    raw_jobs = payload.get("jobs")
+    if not isinstance(raw_jobs, list):
+        raise ValueError("experiment suite jobs must be a list")
+    jobs = tuple(_suite_job_from_payload(item) for item in raw_jobs)
+    suite = ExperimentSuite(name=str(payload["name"]), jobs=jobs)
+    suite.validate()
+    return suite
+
+
+def _suite_job_from_payload(payload: object) -> SuiteJob:
+    if not isinstance(payload, dict):
+        raise ValueError("suite job must be a JSON object")
+    raw_params = payload.get("params", {})
+    if not isinstance(raw_params, dict):
+        raise ValueError("suite job params must be a JSON object")
+    return SuiteJob(
+        run_id=str(payload["run_id"]),
+        pipeline=str(payload["pipeline"]),
+        dataset=str(payload.get("dataset", payload["pipeline"])),
+        params=dict(raw_params),
+        notes=None if payload.get("notes") is None else str(payload["notes"]),
+    )
