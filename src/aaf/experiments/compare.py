@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import csv
 import json
 from dataclasses import dataclass
 from pathlib import Path
@@ -90,3 +91,21 @@ def comparison_table(rows: tuple[RunComparisonRow, ...]) -> ComparisonTable:
 
     columns = comparison_columns(rows)
     return tuple({column: row.values.get(column) for column in columns} for row in rows)
+
+
+def write_comparison_json(path: Path, rows: tuple[RunComparisonRow, ...]) -> None:
+    """Write comparison rows as JSON."""
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(comparison_table(rows), indent=2, sort_keys=True), encoding="utf-8")
+
+
+def write_comparison_csv(path: Path, rows: tuple[RunComparisonRow, ...]) -> None:
+    """Write comparison rows as CSV."""
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    columns = comparison_columns(rows)
+    with path.open("w", encoding="utf-8", newline="") as file:
+        writer = csv.DictWriter(file, fieldnames=columns)
+        writer.writeheader()
+        writer.writerows(comparison_table(rows))
