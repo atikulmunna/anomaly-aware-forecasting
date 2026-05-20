@@ -4,7 +4,7 @@ import tomllib
 
 from aaf import __version__
 from aaf.data import SMDMachineSplit
-from aaf.experiments import collect_run_rows
+from aaf.experiments import SuiteJob, collect_run_rows
 from aaf.pipelines import SMDBaselineConfig, SMDJointConfig
 
 
@@ -30,7 +30,9 @@ def test_project_scripts_include_smd_entrypoints() -> None:
     assert scripts["aaf-smd-baseline"] == "aaf.pipelines.smd_baseline:main"
     assert scripts["aaf-smd-joint"] == "aaf.pipelines.smd_joint:main"
     assert scripts["aaf-compare-runs"] == "aaf.experiments.cli:main"
+    assert scripts["aaf-run-suite"] == "aaf.experiments.suite_cli:main"
 
 
 def test_experiments_package_exports_collector() -> None:
     assert collect_run_rows.__name__ == "collect_run_rows"
+    assert SuiteJob.__name__ == "SuiteJob"
