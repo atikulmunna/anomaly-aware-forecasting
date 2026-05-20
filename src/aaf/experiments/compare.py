@@ -10,6 +10,7 @@ from typing import Any
 from aaf.experiments.manifest import load_run_manifest
 
 FlatMetrics = dict[str, str | int | float | bool | None]
+ComparisonTable = tuple[FlatMetrics, ...]
 
 
 @dataclass(frozen=True)
@@ -71,3 +72,21 @@ def collect_run_rows(root: Path) -> tuple[RunComparisonRow, ...]:
     """Collect all metric-bearing run directories under a root."""
 
     return tuple(collect_run_row(run_dir) for run_dir in discover_run_dirs(root))
+
+
+def comparison_columns(rows: tuple[RunComparisonRow, ...]) -> tuple[str, ...]:
+    """Return stable column order for a run comparison table."""
+
+    keys = {key for row in rows for key in row.values}
+    leading = tuple(
+        key for key in ("run_dir", "manifest.run_id", "manifest.pipeline") if key in keys
+    )
+    remaining = tuple(sorted(keys.difference(leading)))
+    return leading + remaining
+
+
+def comparison_table(rows: tuple[RunComparisonRow, ...]) -> ComparisonTable:
+    """Return rows padded with all discovered columns."""
+
+    columns = comparison_columns(rows)
+    return tuple({column: row.values.get(column) for column in columns} for row in rows)
