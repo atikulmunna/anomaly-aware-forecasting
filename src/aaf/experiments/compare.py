@@ -54,3 +54,20 @@ def collect_run_row(run_dir: Path) -> RunComparisonRow:
         values.update(flatten_mapping({"manifest": load_run_manifest(manifest_path).to_dict()}))
     values.update(flatten_mapping(payload))
     return RunComparisonRow(run_dir=run_dir, values=values)
+
+
+def discover_run_dirs(root: Path) -> tuple[Path, ...]:
+    """Return directories under root that contain metrics.json."""
+
+    if root.is_file():
+        raise ValueError("run comparison root must be a directory")
+    if not root.exists():
+        raise FileNotFoundError(root)
+    candidates = [path.parent for path in root.rglob("metrics.json")]
+    return tuple(sorted(candidates, key=lambda path: str(path)))
+
+
+def collect_run_rows(root: Path) -> tuple[RunComparisonRow, ...]:
+    """Collect all metric-bearing run directories under a root."""
+
+    return tuple(collect_run_row(run_dir) for run_dir in discover_run_dirs(root))
