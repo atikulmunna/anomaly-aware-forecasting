@@ -134,6 +134,18 @@ If a run directory contains `manifest.json`, fields such as `run_id`, `pipeline`
 `seed` are included as columns. Nested metrics are flattened with dotted names such as
 `forecast.nll`, `anomaly.test.f1`, and `anomaly.threshold_free.vus_pr`.
 
+## Running Suites
+
+Experiment suites define multiple pipeline jobs in one JSON file. Run the checked-in synthetic
+smoke suite with:
+
+```powershell
+aaf-run-suite experiments/smoke.synthetic.json --output-root runs/smoke --compare reports/smoke.csv
+```
+
+Each job writes its normal run artifacts plus `manifest.json`. When `--compare` is provided, the
+suite runner exports a comparison table after all jobs finish.
+
 ## Technology Stack
 
 - Python 3.10+
