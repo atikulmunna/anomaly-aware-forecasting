@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any, Protocol
 
 from aaf.eval.report import EvaluationReport
+from aaf.experiments.manifest import RunManifest, write_run_manifest
 from aaf.pipelines.joint_synthetic import JointSyntheticConfig, run_joint_synthetic
 from aaf.pipelines.mdn_synthetic import MDNSyntheticConfig, run_mdn_synthetic
 from aaf.pipelines.smd_baseline import SMDBaselineConfig, run_smd_baseline
@@ -75,6 +76,14 @@ class ExperimentSuite:
             seen_run_ids.add(job.run_id)
 
 
+@dataclass(frozen=True)
+class SuiteRunResult:
+    """Run directories and reports produced by a suite execution."""
+
+    output_root: Path
+    reports: dict[str, EvaluationReport]
+
+
 def load_experiment_suite(path: Path) -> ExperimentSuite:
     """Load an experiment suite JSON file."""
 
@@ -88,6 +97,32 @@ def load_experiment_suite(path: Path) -> ExperimentSuite:
     suite = ExperimentSuite(name=str(payload["name"]), jobs=jobs)
     suite.validate()
     return suite
+
+
+def run_experiment_suite(
+    suite: ExperimentSuite,
+    output_root: Path,
+    *,
+    overwrite: bool = False,
+) -> SuiteRunResult:
+    """Run every job in a suite and write manifests beside run artifacts."""
+
+    suite.validate()
+    reports: dict[str, EvaluationReport] = {}
+    for job in suite.jobs:
+        report = run_suite_job(job, output_root, overwrite=overwrite)
+        reports[job.run_id] = report
+        write_run_manifest(
+            output_root / job.run_id / "manifest.json",
+            RunManifest(
+                run_id=job.run_id,
+                pipeline=job.pipeline,
+                dataset=job.dataset,
+                seed=_seed_from_params(job.params),
+                notes=job.notes,
+            ),
+        )
+    return SuiteRunResult(output_root=output_root, reports=reports)
 
 
 def run_suite_job(
@@ -126,3 +161,9 @@ def _normalize_config_params(params: dict[str, Any]) -> dict[str, Any]:
     if "root" in normalized:
         normalized["root"] = Path(str(normalized["root"]))
     return normalized
+
+
+def _seed_from_params(params: dict[str, Any]) -> int | None:
+    if "seed" not in params or params["seed"] is None:
+        return None
+    return int(params["seed"])
