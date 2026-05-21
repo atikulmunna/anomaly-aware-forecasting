@@ -10,6 +10,7 @@ from aaf.experiments.suite import (
     load_experiment_suite,
     run_experiment_suite,
     run_suite_job,
+    validate_suite_configs,
 )
 
 
@@ -90,6 +91,14 @@ def test_checked_in_headline_synthetic_suite_loads() -> None:
         "synthetic-joint",
     ]
     assert all(job.params["n_test_configs"] == 10 for job in suite.jobs)
+
+
+def test_checked_in_synthetic_suites_match_pipeline_configs() -> None:
+    for path in (
+        Path("experiments/smoke.synthetic.json"),
+        Path("experiments/headline.synthetic.json"),
+    ):
+        validate_suite_configs(load_experiment_suite(path))
 
 
 def test_run_suite_job_dispatches_smd_baseline(tmp_path) -> None:

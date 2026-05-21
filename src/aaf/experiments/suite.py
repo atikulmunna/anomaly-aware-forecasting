@@ -100,6 +100,25 @@ def load_experiment_suite(path: Path) -> ExperimentSuite:
     return suite
 
 
+def validate_suite_job_config(job: SuiteJob) -> None:
+    """Validate one suite job against its target pipeline config type."""
+
+    job.validate()
+    if job.pipeline not in PIPELINES:
+        raise ValueError(f"unsupported pipeline: {job.pipeline}")
+    config_type, _runner = PIPELINES[job.pipeline]
+    config = config_type(**_normalize_config_params(job.params))
+    config.validate()
+
+
+def validate_suite_configs(suite: ExperimentSuite) -> None:
+    """Validate every job's params against the configured pipeline."""
+
+    suite.validate()
+    for job in suite.jobs:
+        validate_suite_job_config(job)
+
+
 def run_experiment_suite(
     suite: ExperimentSuite,
     output_root: Path,
