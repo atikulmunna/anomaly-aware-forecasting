@@ -21,6 +21,29 @@
       }
     },
     {
+      "run_id": "synthetic-mdn-smoke",
+      "pipeline": "synthetic-mdn",
+      "dataset": "synthetic",
+      "notes": "Tiny MDN-LSTM smoke run",
+      "params": {
+        "seed": 9,
+        "n_train_configs": 1,
+        "n_validation_configs": 1,
+        "n_test_configs": 1,
+        "series_length": 80,
+        "burn_in": 10,
+        "lookback": 8,
+        "horizon": 1,
+        "stride": 4,
+        "hidden_size": 6,
+        "n_components": 2,
+        "epochs": 1,
+        "batch_size": 8,
+        "learning_rate": 0.01,
+        "energy_samples": 16
+      }
+    },
+    {
       "run_id": "synthetic-joint-smoke",
       "pipeline": "synthetic-joint",
       "dataset": "synthetic",
