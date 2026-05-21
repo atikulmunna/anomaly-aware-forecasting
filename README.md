@@ -143,6 +143,18 @@ smoke suite with:
 aaf-run-suite experiments/smoke.synthetic.json --output-root runs/smoke --compare reports/smoke.csv
 ```
 
+Validate the larger synthetic headline suite without launching training:
+
+```powershell
+aaf-run-suite experiments/headline.synthetic.json --output-root runs/synthetic_headline --dry-run
+```
+
+Run the headline suite when you are ready to spend the CPU time:
+
+```powershell
+aaf-run-suite experiments/headline.synthetic.json --output-root runs/synthetic_headline --compare reports/synthetic_headline.csv
+```
+
 Each job writes its normal run artifacts plus `manifest.json`. When `--compare` is provided, the
 suite runner exports a comparison table after all jobs finish.
 
