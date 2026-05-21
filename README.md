@@ -149,7 +149,7 @@ Validate the larger synthetic headline suite without launching training:
 aaf-run-suite experiments/headline.synthetic.json --output-root runs/synthetic_headline --dry-run
 ```
 
-Run the headline suite when you are ready to spend the CPU time:
+Run the CPU-feasible headline suite when you are ready to spend the training time:
 
 ```powershell
 aaf-run-suite experiments/headline.synthetic.json --output-root runs/synthetic_headline --compare reports/synthetic_headline.csv
