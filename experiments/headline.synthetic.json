@@ -1,0 +1,83 @@
+{
+  "name": "synthetic-headline",
+  "jobs": [
+    {
+      "run_id": "synthetic-baseline-headline",
+      "pipeline": "synthetic-baseline",
+      "dataset": "synthetic",
+      "notes": "Seasonal-naive baseline on held-out synthetic generator configurations",
+      "params": {
+        "seed": 101,
+        "n_train_configs": 20,
+        "n_validation_configs": 5,
+        "n_test_configs": 10,
+        "series_length": 3000,
+        "burn_in": 50,
+        "lookback": 100,
+        "horizon": 1,
+        "stride": 1,
+        "season_length": 1,
+        "n_regimes": 3,
+        "n_channels": 1,
+        "ar_order": 2,
+        "energy_samples": 128
+      }
+    },
+    {
+      "run_id": "synthetic-mdn-headline",
+      "pipeline": "synthetic-mdn",
+      "dataset": "synthetic",
+      "notes": "MDN-LSTM on held-out synthetic generator configurations",
+      "params": {
+        "seed": 102,
+        "n_train_configs": 20,
+        "n_validation_configs": 5,
+        "n_test_configs": 10,
+        "series_length": 3000,
+        "burn_in": 50,
+        "lookback": 100,
+        "horizon": 1,
+        "stride": 1,
+        "n_regimes": 3,
+        "n_channels": 1,
+        "ar_order": 2,
+        "hidden_size": 64,
+        "num_layers": 1,
+        "n_components": 3,
+        "epochs": 10,
+        "batch_size": 128,
+        "learning_rate": 0.001,
+        "energy_samples": 128
+      }
+    },
+    {
+      "run_id": "synthetic-joint-headline",
+      "pipeline": "synthetic-joint",
+      "dataset": "synthetic",
+      "notes": "Joint regime-aware MDN-LSTM on held-out synthetic generator configurations",
+      "params": {
+        "seed": 103,
+        "n_train_configs": 20,
+        "n_validation_configs": 5,
+        "n_test_configs": 10,
+        "series_length": 3000,
+        "burn_in": 50,
+        "lookback": 100,
+        "horizon": 1,
+        "stride": 1,
+        "n_regimes": 3,
+        "n_channels": 1,
+        "ar_order": 2,
+        "hidden_size": 64,
+        "num_layers": 1,
+        "n_components": 3,
+        "epochs": 10,
+        "batch_size": 128,
+        "learning_rate": 0.001,
+        "smoothness_weight": 0.1,
+        "supervised_regime_weight": 0.1,
+        "energy_samples": 128
+      }
+    }
+  ]
+}

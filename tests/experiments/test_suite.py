@@ -80,6 +80,18 @@ def test_checked_in_smoke_suite_loads() -> None:
     ]
 
 
+def test_checked_in_headline_synthetic_suite_loads() -> None:
+    suite = load_experiment_suite(Path("experiments/headline.synthetic.json"))
+
+    assert suite.name == "synthetic-headline"
+    assert [job.pipeline for job in suite.jobs] == [
+        "synthetic-baseline",
+        "synthetic-mdn",
+        "synthetic-joint",
+    ]
+    assert all(job.params["n_test_configs"] == 10 for job in suite.jobs)
+
+
 def test_run_suite_job_dispatches_smd_baseline(tmp_path) -> None:
     dataset_root = tmp_path / "dataset"
     write_smd_fixture(dataset_root)
