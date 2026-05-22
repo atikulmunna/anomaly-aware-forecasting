@@ -3,6 +3,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+import aaf.pipelines.smd_joint as smd_joint_module
 from aaf.pipelines.smd_joint import (
     SMDJointConfig,
     build_smd_joint_datasets,
@@ -108,6 +109,27 @@ def test_train_smd_joint_model_returns_predictions(tmp_path) -> None:
     assert len(result.history.train_loss) == 1
     assert validation_prediction.forecast.weights.shape[0] == len(validation)
     assert test_prediction.regime_probs.shape == test.regime_labels.shape + (config.n_regimes,)
+
+
+def test_predict_smd_joint_splits_forwards_device(monkeypatch) -> None:
+    seen_devices: list[str] = []
+
+    def fake_predict(_model, dataset, *, device="cpu"):
+        seen_devices.append(device)
+        return dataset
+
+    monkeypatch.setattr(smd_joint_module, "predict_joint_mdn_lstm", fake_predict)
+
+    validation_prediction, test_prediction = smd_joint_module.predict_smd_joint_splits(
+        result=type("Result", (), {"model": object()})(),
+        validation_dataset="validation",
+        test_dataset="test",
+        device="cuda",
+    )
+
+    assert validation_prediction == "validation"
+    assert test_prediction == "test"
+    assert seen_devices == ["cuda", "cuda"]
 
 
 def test_smd_joint_artifact_writers_emit_npz_files(tmp_path) -> None:

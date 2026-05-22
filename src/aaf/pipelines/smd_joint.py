@@ -114,7 +114,12 @@ def run_smd_joint(
     train, validation, test, standardizers = build_smd_joint_datasets(config)
     model_config = smd_joint_model_config(train, config)
     result = train_smd_joint_model(train, validation, config)
-    validation_prediction, test_prediction = predict_smd_joint_splits(result, validation, test)
+    validation_prediction, test_prediction = predict_smd_joint_splits(
+        result,
+        validation,
+        test,
+        device=config.device,
+    )
 
     _write_config(output_dir / "config.json", config)
     _write_training_artifacts(output_dir, result, model_config, config, standardizers)
@@ -261,12 +266,14 @@ def predict_smd_joint_splits(
     result: JointTrainingResult,
     validation_dataset: WindowedDataset,
     test_dataset: WindowedDataset,
+    *,
+    device: str = "cpu",
 ) -> tuple[JointPrediction, JointPrediction]:
     """Predict validation and test splits for a trained SMD joint model."""
 
     return (
-        predict_joint_mdn_lstm(result.model, validation_dataset),
-        predict_joint_mdn_lstm(result.model, test_dataset),
+        predict_joint_mdn_lstm(result.model, validation_dataset, device=device),
+        predict_joint_mdn_lstm(result.model, test_dataset, device=device),
     )
 
 
