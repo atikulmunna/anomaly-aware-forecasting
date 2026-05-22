@@ -102,6 +102,14 @@ def test_checked_in_synthetic_suites_match_pipeline_configs() -> None:
         validate_suite_configs(load_experiment_suite(path))
 
 
+def test_checked_in_smd_suites_match_pipeline_configs() -> None:
+    for path in (
+        Path("experiments/smoke.smd.json"),
+        Path("experiments/headline.smd.json"),
+    ):
+        validate_suite_configs(load_experiment_suite(path))
+
+
 def test_apply_suite_param_overrides_updates_every_job() -> None:
     suite = ExperimentSuite(
         name="override",

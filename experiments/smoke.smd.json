@@ -1,0 +1,46 @@
+{
+  "name": "smd-smoke",
+  "jobs": [
+    {
+      "run_id": "smd-baseline-smoke",
+      "pipeline": "smd-baseline",
+      "dataset": "smd",
+      "notes": "Tiny SMD seasonal-naive smoke run on one machine",
+      "params": {
+        "root": "datasets/SMD",
+        "machine_ids": ["machine-1-1"],
+        "validation_fraction": 0.2,
+        "lookback": 32,
+        "horizon": 1,
+        "stride": 8,
+        "season_length": 1,
+        "energy_samples": 64,
+        "seed": 201
+      }
+    },
+    {
+      "run_id": "smd-joint-smoke",
+      "pipeline": "smd-joint",
+      "dataset": "smd",
+      "notes": "Tiny SMD joint-model smoke run on one machine",
+      "params": {
+        "root": "datasets/SMD",
+        "machine_ids": ["machine-1-1"],
+        "validation_fraction": 0.2,
+        "lookback": 32,
+        "horizon": 1,
+        "stride": 8,
+        "n_regimes": 3,
+        "hidden_size": 16,
+        "num_layers": 1,
+        "n_components": 2,
+        "epochs": 2,
+        "batch_size": 64,
+        "learning_rate": 0.001,
+        "smoothness_weight": 0.1,
+        "energy_samples": 64,
+        "seed": 202
+      }
+    }
+  ]
+}
