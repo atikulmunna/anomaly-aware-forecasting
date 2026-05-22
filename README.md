@@ -105,6 +105,8 @@ SMD/
   test_label/<machine-id>.txt
 ```
 
+Place the dataset at `datasets/SMD` or pass a custom root through suite overrides.
+
 Run the seasonal-naive baseline:
 
 ```powershell
@@ -115,6 +117,24 @@ Run the joint regime-aware MDN-LSTM:
 
 ```powershell
 aaf-smd-joint C:\path\to\SMD runs\smd_joint --machine-id machine-1-1 --epochs 5
+```
+
+Run the checked-in SMD smoke suite with a local dataset path:
+
+```powershell
+aaf-run-suite experiments/smoke.smd.json --set root=C:\path\to\SMD --output-root runs/smd_smoke --compare reports/smd_smoke.csv
+```
+
+Validate the selected-machine SMD headline suite without launching training:
+
+```powershell
+aaf-run-suite experiments/headline.smd.json --set root=C:\path\to\SMD --output-root runs/smd_headline --dry-run
+```
+
+Run the SMD headline suite:
+
+```powershell
+aaf-run-suite experiments/headline.smd.json --set root=C:\path\to\SMD --output-root runs/smd_headline --compare reports/smd_headline.csv
 ```
 
 Both commands fit standardization statistics on each machine's training split only, carve validation
