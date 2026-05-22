@@ -7,6 +7,7 @@ from aaf.experiments import load_run_manifest
 from aaf.experiments.suite import (
     ExperimentSuite,
     SuiteJob,
+    apply_suite_param_overrides,
     load_experiment_suite,
     run_experiment_suite,
     run_suite_job,
@@ -99,6 +100,30 @@ def test_checked_in_synthetic_suites_match_pipeline_configs() -> None:
         Path("experiments/headline.synthetic.json"),
     ):
         validate_suite_configs(load_experiment_suite(path))
+
+
+def test_apply_suite_param_overrides_updates_every_job() -> None:
+    suite = ExperimentSuite(
+        name="override",
+        jobs=(
+            SuiteJob(
+                run_id="a",
+                pipeline="smd-baseline",
+                dataset="smd",
+                params={"root": "old", "lookback": 3},
+            ),
+            SuiteJob(
+                run_id="b",
+                pipeline="smd-joint",
+                dataset="smd",
+                params={"root": "old", "lookback": 3},
+            ),
+        ),
+    )
+
+    updated = apply_suite_param_overrides(suite, {"root": "new"})
+
+    assert [job.params["root"] for job in updated.jobs] == ["new", "new"]
 
 
 def test_run_suite_job_dispatches_smd_baseline(tmp_path) -> None:

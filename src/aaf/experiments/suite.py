@@ -119,6 +119,31 @@ def validate_suite_configs(suite: ExperimentSuite) -> None:
         validate_suite_job_config(job)
 
 
+def apply_suite_param_overrides(
+    suite: ExperimentSuite,
+    overrides: dict[str, Any],
+) -> ExperimentSuite:
+    """Apply shared parameter overrides to every suite job."""
+
+    if not overrides:
+        return suite
+    overridden = ExperimentSuite(
+        name=suite.name,
+        jobs=tuple(
+            SuiteJob(
+                run_id=job.run_id,
+                pipeline=job.pipeline,
+                dataset=job.dataset,
+                params={**job.params, **overrides},
+                notes=job.notes,
+            )
+            for job in suite.jobs
+        ),
+    )
+    overridden.validate()
+    return overridden
+
+
 def run_experiment_suite(
     suite: ExperimentSuite,
     output_root: Path,
