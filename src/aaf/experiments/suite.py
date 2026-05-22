@@ -183,6 +183,8 @@ def _normalize_config_params(params: dict[str, Any]) -> dict[str, Any]:
     normalized = dict(params)
     if "root" in normalized:
         normalized["root"] = Path(str(normalized["root"]))
+    if "machine_ids" in normalized and normalized["machine_ids"] is not None:
+        normalized["machine_ids"] = tuple(str(value) for value in normalized["machine_ids"])
     return normalized
 
 
