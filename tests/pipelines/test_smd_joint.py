@@ -50,6 +50,7 @@ def tiny_config(root: Path) -> SMDJointConfig:
         batch_size=4,
         learning_rate=0.01,
         energy_samples=16,
+        device="cpu",
     )
 
 
@@ -86,6 +87,14 @@ def test_smd_joint_config_helpers_match_dataset_dimensions(tmp_path) -> None:
     assert model_config.n_regimes == 2
     assert loss_config.smoothness_weight == config.smoothness_weight
     assert training_config.epochs == 1
+    assert training_config.device == "cpu"
+
+
+def test_smd_joint_training_config_preserves_device(tmp_path) -> None:
+    config = tiny_config(tmp_path)
+
+    assert smd_joint_training_config(config).device == config.device
+    assert smd_joint_training_config(SMDJointConfig(root=tmp_path, device="cuda")).device == "cuda"
 
 
 def test_train_smd_joint_model_returns_predictions(tmp_path) -> None:
@@ -177,6 +186,8 @@ def test_smd_joint_cli_writes_metrics(tmp_path) -> None:
             "0.01",
             "--energy-samples",
             "16",
+            "--device",
+            "cpu",
         ]
     )
 

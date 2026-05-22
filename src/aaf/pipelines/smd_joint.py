@@ -48,6 +48,7 @@ class SMDJointConfig:
     supervised_regime_weight: float = 0.0
     energy_samples: int = 128
     seed: int = 0
+    device: str = "cpu"
 
     def validate(self) -> None:
         if not 0.0 < self.validation_fraction < 1.0:
@@ -78,6 +79,8 @@ class SMDJointConfig:
             raise ValueError("supervised_regime_weight must be non-negative")
         if self.energy_samples < 2:
             raise ValueError("energy_samples must be at least 2")
+        if not self.device:
+            raise ValueError("device must be non-empty")
 
 
 def build_smd_joint_datasets(
@@ -167,6 +170,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--supervised-regime-weight", type=float, default=0.0)
     parser.add_argument("--energy-samples", type=int, default=128)
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--device", default="cpu")
     parser.add_argument("--overwrite", action="store_true")
     return parser
 
@@ -192,6 +196,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             supervised_regime_weight=args.supervised_regime_weight,
             energy_samples=args.energy_samples,
             seed=args.seed,
+            device=args.device,
         ),
         overwrite=args.overwrite,
     )
@@ -232,6 +237,7 @@ def smd_joint_training_config(config: SMDJointConfig) -> TrainingConfig:
         batch_size=config.batch_size,
         learning_rate=config.learning_rate,
         seed=config.seed,
+        device=config.device,
     )
 
 
