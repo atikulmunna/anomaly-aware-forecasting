@@ -131,6 +131,24 @@ def test_energy_score_is_deterministic_for_seed() -> None:
     assert first >= 0.0
 
 
+def test_energy_score_matches_direct_pairwise_estimate() -> None:
+    forecast = MixtureForecast.from_arrays(
+        weights=np.ones((2, 1)),
+        means=np.array([[[0.0, 0.0]], [[2.0, 2.0]]]),
+        stds=np.ones((2, 1, 2)),
+    )
+    observed = np.array([[0.5, 0.5], [1.5, 1.5]])
+    samples = sample_mixture(forecast, n_samples=8, seed=7)
+    diff_obs = np.linalg.norm(samples - observed[:, np.newaxis, :], axis=-1).mean(axis=-1)
+    sample_diff = np.linalg.norm(
+        samples[..., :, np.newaxis, :] - samples[..., np.newaxis, :, :],
+        axis=-1,
+    ).mean(axis=(-2, -1))
+    expected = float(np.mean(diff_obs - 0.5 * sample_diff))
+
+    assert energy_score(observed, forecast, n_samples=8, seed=7) == pytest.approx(expected)
+
+
 def test_sample_mixture_shape_matches_forecast_batch_dimensions() -> None:
     forecast = MixtureForecast.from_arrays(
         weights=np.ones((2, 3, 1)),

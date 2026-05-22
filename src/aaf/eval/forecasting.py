@@ -209,10 +209,7 @@ def energy_score(
     y = _observed_array(observed, forecast)
     samples = sample_mixture(forecast, n_samples=n_samples, seed=seed)
     diff_obs = np.linalg.norm(samples - y[..., np.newaxis, :], axis=-1).mean(axis=-1)
-    sample_diff = np.linalg.norm(
-        samples[..., :, np.newaxis, :] - samples[..., np.newaxis, :, :],
-        axis=-1,
-    ).mean(axis=(-2, -1))
+    sample_diff = _mean_pairwise_sample_distance(samples)
     return float(np.mean(diff_obs - 0.5 * sample_diff))
 
 
@@ -244,6 +241,38 @@ def sample_mixture(
         flat_samples[idx] = rng.normal(loc=loc, scale=scale)
 
     return flat_samples.reshape(*weights.shape[:-1], n_samples, forecast.n_channels)
+
+
+def _mean_pairwise_sample_distance(
+    samples: FloatArray,
+    *,
+    observation_batch_size: int = 1024,
+    sample_block_size: int = 16,
+) -> FloatArray:
+    """Return per-observation mean pairwise sample distances without a full pair matrix."""
+
+    flat_samples = samples.reshape(-1, samples.shape[-2], samples.shape[-1])
+    out = np.empty(flat_samples.shape[0], dtype=np.float64)
+    n_samples = flat_samples.shape[1]
+    denominator = float(n_samples * n_samples)
+
+    for start in range(0, flat_samples.shape[0], observation_batch_size):
+        stop = min(start + observation_batch_size, flat_samples.shape[0])
+        batch = flat_samples[start:stop]
+        totals = np.zeros(batch.shape[0], dtype=np.float64)
+        for left in range(0, n_samples, sample_block_size):
+            left_stop = min(left + sample_block_size, n_samples)
+            left_block = batch[:, left:left_stop, :]
+            for right in range(0, n_samples, sample_block_size):
+                right_stop = min(right + sample_block_size, n_samples)
+                distances = np.linalg.norm(
+                    left_block[:, :, np.newaxis, :] - batch[:, np.newaxis, right:right_stop, :],
+                    axis=-1,
+                )
+                totals += distances.sum(axis=(1, 2))
+        out[start:stop] = totals / denominator
+
+    return out.reshape(samples.shape[:-2])
 
 
 def _observed_array(observed: ArrayLike, forecast: MixtureForecast) -> FloatArray:
