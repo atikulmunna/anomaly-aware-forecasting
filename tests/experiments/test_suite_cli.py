@@ -98,3 +98,43 @@ def test_run_suite_cli_dry_run_validates_without_outputs(tmp_path) -> None:
 
     assert exit_code == 0
     assert not (tmp_path / "runs").exists()
+
+
+def test_run_suite_cli_applies_set_overrides(tmp_path) -> None:
+    dataset_root = tmp_path / "dataset"
+    write_smd_fixture(dataset_root)
+    suite_path = tmp_path / "suite.json"
+    suite_path.write_text(
+        json.dumps(
+            {
+                "name": "override",
+                "jobs": [
+                    {
+                        "run_id": "smd-baseline",
+                        "pipeline": "smd-baseline",
+                        "dataset": "smd",
+                        "params": {
+                            "root": "placeholder",
+                            "lookback": 3,
+                            "validation_fraction": 0.25,
+                            "energy_samples": 16,
+                        },
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    exit_code = main(
+        [
+            str(suite_path),
+            "--output-root",
+            str(tmp_path / "runs"),
+            "--set",
+            f"root={dataset_root}",
+        ]
+    )
+
+    assert exit_code == 0
+    assert (tmp_path / "runs" / "smd-baseline" / "metrics.json").exists()
