@@ -1,0 +1,10 @@
+scope,run_id,pipeline,score_method,threshold_strategy,test_f1,precision,recall,roc_auc,vus_roc,notes
+synthetic_headline,synthetic-baseline-headline,synthetic-baseline,mean_nll,max_validation_f1,0.4593826668623792,0.6872294372294372,0.34500000000000003,0.6788538761851646,0.6916254260395365,Synthetic held-out generator baseline
+synthetic_headline,synthetic-mdn-headline,synthetic-mdn,mean_nll,max_validation_f1,0.4587279500875263,0.5691056910569106,0.3842105263157894,0.968735294117647,0.968735294117647,Synthetic held-out generator MDN-LSTM
+synthetic_headline,synthetic-joint-headline,synthetic-joint,mean_nll,max_validation_f1,0.6068800142855321,0.716566265060241,0.5263157894736842,0.9575495356037151,0.9575495356037151,Synthetic held-out generator joint model
+smd_selected,smd-baseline-headline,smd-baseline,mean_nll,max_validation_f1,0.028971314307445564,0.7619047619047619,0.014766402269604044,0.7737128732457061,0.7237112274946659,Selected-machine seasonal baseline
+smd_selected,smd-joint-headline-gpu,smd-joint,mean_nll,max_validation_f1,0.0462923184453504,0.9444444444444444,0.02372766978809699,0.8653460934811452,0.8104571881635614,Selected-machine joint GPU headline
+smd_full,smd-mdn-full-gpu,smd-mdn,mean_nll,max_validation_f1,0.11505751763608212,0.38494934589388524,0.06763673071040624,0.7480482272549474,0.7614669953559381,Full all-machine MDN-LSTM
+smd_full,smd-joint-full-gpu,smd-joint,mean_nll,max_validation_f1,0.14158531971550214,0.4303446320912883,0.08473111959864242,0.7428348524752836,0.7567671758596489,Full all-machine joint model
+smd_full_calibrated,smd-joint-full-calibrated-gpu,smd-joint,channel_max_nll,validation_quantile_99,0.2289405622972296,0.1473884807990107,0.5125310926573426,0.7005019972642007,0.709679021577481,Full all-machine joint model with calibrated threshold
+smd_full_calibrated,smd-mdn-full-calibrated-gpu,smd-mdn,channel_max_nll,validation_quantile_99,0.2310457969737082,0.14998367833340534,0.5027903989389538,0.7254089807956133,0.7242450910167311,Full all-machine MDN-LSTM with calibrated threshold
