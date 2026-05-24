@@ -100,6 +100,21 @@ def negative_log_likelihood_values(observed: ArrayLike, forecast: MixtureForecas
     return np.asarray(-log_mix, dtype=np.float64)
 
 
+def channelwise_negative_log_likelihood_values(
+    observed: ArrayLike,
+    forecast: MixtureForecast,
+) -> FloatArray:
+    """Return per-channel marginal NLL values with shape (..., D)."""
+
+    y = _observed_array(observed, forecast)
+    weights = forecast.normalized_weights()
+    diff = y[..., np.newaxis, :] - forecast.means
+    stds = np.maximum(forecast.stds, _MIN_STD)
+    log_component = -0.5 * (((diff / stds) ** 2) + (2.0 * np.log(stds)) + _LOG_2PI)
+    log_mix = _logsumexp(np.log(weights)[..., np.newaxis] + log_component, axis=-2)
+    return np.asarray(-log_mix, dtype=np.float64)
+
+
 def predictive_mean(forecast: MixtureForecast) -> FloatArray:
     """Return the mixture predictive mean with shape (..., D)."""
 

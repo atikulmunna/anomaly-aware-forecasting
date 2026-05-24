@@ -8,6 +8,7 @@ from aaf.eval.forecasting import (
     central_interval_coverage,
     channelwise_crps,
     channelwise_crps_values,
+    channelwise_negative_log_likelihood_values,
     energy_score,
     mean_absolute_error,
     negative_log_likelihood,
@@ -43,6 +44,21 @@ def test_nll_values_preserve_batch_dimensions() -> None:
     assert values.shape == (2, 3)
     assert negative_log_likelihood(np.zeros((2, 3, 1)), forecast) == pytest.approx(
         float(values.mean())
+    )
+
+
+def test_channelwise_nll_values_preserve_channel_dimension() -> None:
+    forecast = MixtureForecast.from_arrays(
+        weights=np.ones((2, 1)),
+        means=np.zeros((2, 1, 3)),
+        stds=np.ones((2, 1, 3)),
+    )
+
+    values = channelwise_negative_log_likelihood_values(np.zeros((2, 3)), forecast)
+
+    assert values.shape == (2, 3)
+    assert negative_log_likelihood_values(np.zeros((2, 3)), forecast) == pytest.approx(
+        values.sum(axis=-1)
     )
 
 

@@ -64,6 +64,11 @@ def test_smd_joint_config_rejects_invalid_regime_count(tmp_path) -> None:
         SMDJointConfig(root=tmp_path, n_regimes=1).validate()
 
 
+def test_smd_joint_config_rejects_unknown_anomaly_score_method(tmp_path) -> None:
+    with pytest.raises(ValueError, match="anomaly_score_method"):
+        SMDJointConfig(root=tmp_path, anomaly_score_method="unknown").validate()
+
+
 def test_build_smd_joint_datasets_returns_windowed_splits(tmp_path) -> None:
     write_smd_fixture(tmp_path)
 
@@ -89,6 +94,7 @@ def test_smd_joint_config_helpers_match_dataset_dimensions(tmp_path) -> None:
     assert loss_config.smoothness_weight == config.smoothness_weight
     assert training_config.epochs == 1
     assert training_config.device == "cpu"
+    assert config.anomaly_score_method == "mean_nll"
 
 
 def test_smd_joint_training_config_preserves_device(tmp_path) -> None:
@@ -144,11 +150,18 @@ def test_smd_joint_artifact_writers_emit_npz_files(tmp_path) -> None:
         test.targets,
         test_prediction.forecast,
     )
-    write_smd_joint_anomaly_artifact(tmp_path / "anomaly.npz", test, test_prediction.forecast)
+    write_smd_joint_anomaly_artifact(
+        tmp_path / "anomaly.npz",
+        test,
+        test_prediction.forecast,
+        method="channel_max_nll",
+    )
     write_smd_joint_regime_artifact(tmp_path / "regime.npz", test, test_prediction)
 
     with np.load(tmp_path / "regime.npz") as artifact:
         assert artifact["posterior_probs"].shape == test.regime_labels.shape + (config.n_regimes,)
+    with np.load(tmp_path / "anomaly.npz") as artifact:
+        assert artifact["scores"].shape == test.anomaly_labels.shape
     assert (tmp_path / "forecast.npz").exists()
     assert (tmp_path / "anomaly.npz").exists()
 
@@ -210,6 +223,8 @@ def test_smd_joint_cli_writes_metrics(tmp_path) -> None:
             "16",
             "--device",
             "cpu",
+            "--anomaly-score-method",
+            "channel_mean_nll",
         ]
     )
 

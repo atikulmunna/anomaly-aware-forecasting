@@ -15,8 +15,9 @@ import torch
 from aaf.data.preprocessing import Standardizer, WindowedDataset
 from aaf.data.smd import prepare_smd_windowed_datasets
 from aaf.data.synthetic import FloatArray
+from aaf.eval.anomaly_scores import forecast_anomaly_scores, validate_anomaly_score_method
 from aaf.eval.artifacts import write_mixture_diagnostics_json
-from aaf.eval.forecasting import MixtureForecast, negative_log_likelihood_values
+from aaf.eval.forecasting import MixtureForecast
 from aaf.eval.report import EvaluationReport, evaluate_run_directory
 from aaf.models.mdn_lstm import MDNLSTMConfig
 from aaf.train.loop import TrainingConfig, TrainingResult, predict_mdn_lstm, train_mdn_lstm
@@ -39,6 +40,7 @@ class SMDMDNConfig:
     energy_samples: int = 128
     seed: int = 0
     device: str = "cpu"
+    anomaly_score_method: str = "mean_nll"
 
     def validate(self) -> None:
         if not 0.0 < self.validation_fraction < 1.0:
@@ -65,6 +67,7 @@ class SMDMDNConfig:
             raise ValueError("energy_samples must be at least 2")
         if not self.device:
             raise ValueError("device must be non-empty")
+        validate_anomaly_score_method(self.anomaly_score_method)
 
 
 def build_smd_mdn_datasets(
@@ -113,8 +116,14 @@ def run_smd_mdn(
         output_dir / "anomaly_validation.npz",
         validation,
         validation_forecast,
+        method=config.anomaly_score_method,
     )
-    write_smd_mdn_anomaly_artifact(output_dir / "anomaly_test.npz", test, test_forecast)
+    write_smd_mdn_anomaly_artifact(
+        output_dir / "anomaly_test.npz",
+        test,
+        test_forecast,
+        method=config.anomaly_score_method,
+    )
     np.savez(
         output_dir / "regime.npz",
         true_labels=test.regime_labels,
@@ -151,6 +160,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--energy-samples", type=int, default=128)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--device", default="cpu")
+    parser.add_argument("--anomaly-score-method", default="mean_nll")
     parser.add_argument("--overwrite", action="store_true")
     return parser
 
@@ -174,6 +184,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             energy_samples=args.energy_samples,
             seed=args.seed,
             device=args.device,
+            anomaly_score_method=args.anomaly_score_method,
         ),
         overwrite=args.overwrite,
     )
@@ -255,10 +266,12 @@ def write_smd_mdn_anomaly_artifact(
     path: Path,
     dataset: WindowedDataset,
     forecast: MixtureForecast,
+    *,
+    method: str = "mean_nll",
 ) -> None:
     """Write SMD MDN-LSTM anomaly scores from forecast likelihoods."""
 
-    scores = np.mean(negative_log_likelihood_values(dataset.targets, forecast), axis=-1)
+    scores = forecast_anomaly_scores(dataset.targets, forecast, method=method)
     np.savez(path, scores=scores, labels=dataset.anomaly_labels)
 
 

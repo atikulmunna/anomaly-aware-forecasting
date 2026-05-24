@@ -61,6 +61,11 @@ def test_smd_mdn_config_rejects_invalid_component_count(tmp_path) -> None:
         SMDMDNConfig(root=tmp_path, n_components=0).validate()
 
 
+def test_smd_mdn_config_rejects_unknown_anomaly_score_method(tmp_path) -> None:
+    with pytest.raises(ValueError, match="anomaly_score_method"):
+        SMDMDNConfig(root=tmp_path, anomaly_score_method="unknown").validate()
+
+
 def test_build_smd_mdn_datasets_returns_windowed_splits(tmp_path) -> None:
     write_smd_fixture(tmp_path)
 
@@ -84,6 +89,7 @@ def test_smd_mdn_config_helpers_match_dataset_dimensions(tmp_path) -> None:
     assert model_config.n_components == 2
     assert training_config.epochs == 1
     assert training_config.device == "cpu"
+    assert config.anomaly_score_method == "mean_nll"
 
 
 def test_train_smd_mdn_model_returns_predictions(tmp_path) -> None:
@@ -128,10 +134,17 @@ def test_smd_mdn_artifact_writers_emit_npz_files(tmp_path) -> None:
     _validation_forecast, test_forecast = predict_smd_mdn_splits(result, validation, test)
 
     write_smd_mdn_forecast_artifact(tmp_path / "forecast.npz", test.targets, test_forecast)
-    write_smd_mdn_anomaly_artifact(tmp_path / "anomaly.npz", test, test_forecast)
+    write_smd_mdn_anomaly_artifact(
+        tmp_path / "anomaly.npz",
+        test,
+        test_forecast,
+        method="channel_max_nll",
+    )
 
     with np.load(tmp_path / "forecast.npz") as artifact:
         assert artifact["weights"].shape[0] == len(test)
+    with np.load(tmp_path / "anomaly.npz") as artifact:
+        assert artifact["scores"].shape == test.anomaly_labels.shape
     assert (tmp_path / "anomaly.npz").exists()
 
 
@@ -189,6 +202,8 @@ def test_smd_mdn_cli_writes_metrics(tmp_path) -> None:
             "16",
             "--device",
             "cpu",
+            "--anomaly-score-method",
+            "channel_mean_nll",
         ]
     )
 
