@@ -1,0 +1,31 @@
+{
+  "name": "smd-full-gpu",
+  "jobs": [
+    {
+      "run_id": "smd-joint-full-gpu",
+      "pipeline": "smd-joint",
+      "dataset": "smd",
+      "notes": "GPU SMD joint regime-aware MDN-LSTM benchmark over all 28 machines",
+      "params": {
+        "root": "datasets/SMD",
+        "machine_ids": null,
+        "validation_fraction": 0.2,
+        "lookback": 100,
+        "horizon": 1,
+        "stride": 4,
+        "n_regimes": 3,
+        "hidden_size": 64,
+        "num_layers": 1,
+        "n_components": 3,
+        "epochs": 5,
+        "batch_size": 128,
+        "learning_rate": 0.001,
+        "smoothness_weight": 0.1,
+        "supervised_regime_weight": 0.0,
+        "energy_samples": 32,
+        "seed": 402,
+        "device": "cuda"
+      }
+    }
+  ]
+}
