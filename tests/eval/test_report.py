@@ -44,10 +44,25 @@ def test_evaluate_anomaly_freezes_validation_threshold_for_test() -> None:
     )
 
     assert report.threshold == pytest.approx(0.7)
+    assert report.threshold_strategy == "max_validation_f1"
     assert report.validation.f1 == pytest.approx(1.0)
     assert report.test.f1 == pytest.approx(1.0)
     assert report.threshold_free.vus_pr == pytest.approx(1.0)
     assert report.threshold_free.vus_roc == pytest.approx(1.0)
+
+
+def test_evaluate_anomaly_supports_quantile_threshold_strategy() -> None:
+    report = evaluate_anomaly(
+        np.array([0.1, 0.2, 0.3, 0.4]),
+        np.array([0, 0, 0, 0]),
+        np.array([0.1, 0.35, 0.45]),
+        np.array([0, 1, 1]),
+        threshold_strategy="validation_quantile_95",
+    )
+
+    assert report.threshold_strategy == "validation_quantile_95"
+    assert report.threshold == pytest.approx(0.385)
+    assert report.test.recall == pytest.approx(0.5)
 
 
 def test_evaluate_regime_aligns_permuted_labels() -> None:
@@ -86,7 +101,13 @@ def test_evaluate_run_directory_writes_metrics_json(tmp_path) -> None:
     )
     output = tmp_path / "metrics.json"
 
-    report = evaluate_run_directory(tmp_path, output_path=output, energy_samples=16, seed=0)
+    report = evaluate_run_directory(
+        tmp_path,
+        output_path=output,
+        energy_samples=16,
+        seed=0,
+        threshold_strategy="validation_quantile_95",
+    )
     saved = json.loads(output.read_text(encoding="utf-8"))
 
     assert report.forecast is not None
@@ -94,7 +115,7 @@ def test_evaluate_run_directory_writes_metrics_json(tmp_path) -> None:
     assert report.regime is not None
     assert saved["forecast"]["nll"] == pytest.approx(report.forecast.nll)
     assert saved["forecast"]["diagnostics"]["active_components_1pct"] == 1
-    assert saved["anomaly"]["threshold"] == pytest.approx(0.7)
+    assert saved["anomaly"]["threshold_strategy"] == "validation_quantile_95"
     assert saved["anomaly"]["threshold_free"]["vus_pr"] == pytest.approx(1.0)
     assert saved["anomaly"]["threshold_free"]["vus_roc"] == pytest.approx(1.0)
     assert saved["regime"]["adjusted_rand_index"] == pytest.approx(1.0)
@@ -109,7 +130,28 @@ def test_cli_writes_default_metrics_path(tmp_path) -> None:
         stds=np.array([[[1.0]]]),
     )
 
-    exit_code = main([str(tmp_path), "--energy-samples", "16"])
+    np.savez(
+        tmp_path / "anomaly_validation.npz",
+        scores=np.array([0.1, 0.2, 0.3]),
+        labels=np.array([0, 0, 0]),
+    )
+    np.savez(
+        tmp_path / "anomaly_test.npz",
+        scores=np.array([0.1, 0.35, 0.45]),
+        labels=np.array([0, 1, 1]),
+    )
+
+    exit_code = main(
+        [
+            str(tmp_path),
+            "--energy-samples",
+            "16",
+            "--threshold-strategy",
+            "validation_quantile_95",
+        ]
+    )
 
     assert exit_code == 0
     assert (tmp_path / "metrics.json").exists()
+    saved = json.loads((tmp_path / "metrics.json").read_text(encoding="utf-8"))
+    assert saved["anomaly"]["threshold_strategy"] == "validation_quantile_95"

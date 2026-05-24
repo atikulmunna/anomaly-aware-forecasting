@@ -69,6 +69,11 @@ def test_smd_joint_config_rejects_unknown_anomaly_score_method(tmp_path) -> None
         SMDJointConfig(root=tmp_path, anomaly_score_method="unknown").validate()
 
 
+def test_smd_joint_config_rejects_unknown_threshold_strategy(tmp_path) -> None:
+    with pytest.raises(ValueError, match="threshold_strategy"):
+        SMDJointConfig(root=tmp_path, threshold_strategy="unknown").validate()
+
+
 def test_build_smd_joint_datasets_returns_windowed_splits(tmp_path) -> None:
     write_smd_fixture(tmp_path)
 
@@ -225,6 +230,8 @@ def test_smd_joint_cli_writes_metrics(tmp_path) -> None:
             "cpu",
             "--anomaly-score-method",
             "channel_mean_nll",
+            "--threshold-strategy",
+            "validation_quantile_95",
         ]
     )
 

@@ -17,9 +17,10 @@ from aaf.eval.anomaly import (
     detection_delay,
     false_alarm_rate_per_1000,
     range_precision_recall,
-    select_threshold_by_range_f1,
+    select_threshold,
     threshold_free_metrics,
     threshold_scores,
+    validate_threshold_strategy,
 )
 from aaf.eval.diagnostics import MixtureDiagnostics, mixture_diagnostics
 from aaf.eval.forecasting import (
@@ -54,6 +55,7 @@ class ForecastReport:
 
 @dataclass(frozen=True)
 class AnomalyReport:
+    threshold_strategy: str
     threshold: float
     validation: RangeMetrics
     test: RangeMetrics
@@ -111,16 +113,21 @@ def evaluate_anomaly(
     validation_labels: IntArray,
     test_scores: FloatArray,
     test_labels: IntArray,
+    *,
+    threshold_strategy: str = "max_validation_f1",
 ) -> AnomalyReport:
     """Select an anomaly threshold on validation data and evaluate on test data."""
 
-    threshold, validation_metrics = select_threshold_by_range_f1(
+    validate_threshold_strategy(threshold_strategy)
+    threshold, validation_metrics = select_threshold(
         validation_scores,
         validation_labels,
+        strategy=threshold_strategy,
     )
     test_predictions = threshold_scores(test_scores, threshold)
     test_metrics = range_precision_recall(test_labels, test_predictions)
     return AnomalyReport(
+        threshold_strategy=threshold_strategy,
         threshold=threshold,
         validation=validation_metrics,
         test=test_metrics,
@@ -151,6 +158,7 @@ def evaluate_run_directory(
     output_path: Path | None = None,
     energy_samples: int = 256,
     seed: int = 0,
+    threshold_strategy: str = "max_validation_f1",
 ) -> EvaluationReport:
     """Evaluate any supported artifacts found in a run directory.
 
@@ -187,6 +195,7 @@ def evaluate_run_directory(
             validation_labels,
             test_scores,
             test_labels,
+            threshold_strategy=threshold_strategy,
         )
 
     regime_report = None

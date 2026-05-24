@@ -16,7 +16,10 @@ from aaf.eval.anomaly import (
     range_precision_recall,
     roc_auc_score,
     roc_curve,
+    select_threshold,
+    select_threshold_by_quantile,
     select_threshold_by_range_f1,
+    select_threshold_by_target_recall,
     threshold_candidates,
     threshold_free_metrics,
     threshold_scores,
@@ -221,6 +224,58 @@ def test_select_threshold_uses_range_f1_objective() -> None:
 
     assert threshold == pytest.approx(0.7)
     assert metrics.f1 == pytest.approx(1.0)
+
+
+def test_select_threshold_by_quantile_uses_validation_distribution() -> None:
+    scores = np.array([0.0, 1.0, 2.0, 3.0])
+    labels = np.array([0, 0, 0, 0])
+
+    threshold, metrics = select_threshold_by_quantile(scores, labels, quantile=0.75)
+
+    assert threshold == pytest.approx(2.25)
+    assert metrics.f1 == pytest.approx(0.0)
+
+
+def test_select_threshold_by_target_recall_prefers_precision_after_target() -> None:
+    scores = np.array([0.1, 0.9, 0.8, 0.2])
+    labels = np.array([0, 1, 1, 0])
+
+    threshold, metrics = select_threshold_by_target_recall(
+        scores,
+        labels,
+        target_recall=0.5,
+    )
+
+    assert threshold == pytest.approx(0.8)
+    assert metrics.recall == pytest.approx(1.0)
+    assert metrics.precision == pytest.approx(1.0)
+
+
+def test_select_threshold_by_target_recall_falls_back_without_validation_anomalies() -> None:
+    scores = np.array([0.0, 1.0, 2.0, 3.0])
+    labels = np.array([0, 0, 0, 0])
+
+    threshold, _metrics = select_threshold_by_target_recall(
+        scores,
+        labels,
+        target_recall=0.7,
+        fallback_quantile=0.5,
+    )
+
+    assert threshold == pytest.approx(1.5)
+
+
+def test_select_threshold_dispatches_strategy() -> None:
+    scores = np.array([0.0, 1.0, 2.0, 3.0])
+    labels = np.array([0, 0, 0, 0])
+
+    threshold, _metrics = select_threshold(
+        scores,
+        labels,
+        strategy="validation_quantile_95",
+    )
+
+    assert threshold == pytest.approx(2.85)
 
 
 def test_detection_delay_reports_first_hit_inside_each_range() -> None:

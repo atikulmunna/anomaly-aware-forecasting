@@ -15,6 +15,7 @@ import torch
 from aaf.data.preprocessing import Standardizer, WindowedDataset
 from aaf.data.smd import prepare_smd_windowed_datasets
 from aaf.data.synthetic import FloatArray
+from aaf.eval.anomaly import validate_threshold_strategy
 from aaf.eval.anomaly_scores import forecast_anomaly_scores, validate_anomaly_score_method
 from aaf.eval.artifacts import write_mixture_diagnostics_json
 from aaf.eval.forecasting import MixtureForecast
@@ -41,6 +42,7 @@ class SMDMDNConfig:
     seed: int = 0
     device: str = "cpu"
     anomaly_score_method: str = "mean_nll"
+    threshold_strategy: str = "max_validation_f1"
 
     def validate(self) -> None:
         if not 0.0 < self.validation_fraction < 1.0:
@@ -68,6 +70,7 @@ class SMDMDNConfig:
         if not self.device:
             raise ValueError("device must be non-empty")
         validate_anomaly_score_method(self.anomaly_score_method)
+        validate_threshold_strategy(self.threshold_strategy)
 
 
 def build_smd_mdn_datasets(
@@ -140,6 +143,7 @@ def run_smd_mdn(
         output_path=output_dir / "metrics.json",
         energy_samples=config.energy_samples,
         seed=config.seed,
+        threshold_strategy=config.threshold_strategy,
     )
 
 
@@ -161,6 +165,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--device", default="cpu")
     parser.add_argument("--anomaly-score-method", default="mean_nll")
+    parser.add_argument("--threshold-strategy", default="max_validation_f1")
     parser.add_argument("--overwrite", action="store_true")
     return parser
 
@@ -185,6 +190,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             seed=args.seed,
             device=args.device,
             anomaly_score_method=args.anomaly_score_method,
+            threshold_strategy=args.threshold_strategy,
         ),
         overwrite=args.overwrite,
     )

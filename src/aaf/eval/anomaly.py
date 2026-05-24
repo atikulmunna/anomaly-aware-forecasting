@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Literal, get_args
 
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
@@ -11,6 +12,14 @@ BoolArray = NDArray[np.bool_]
 FloatArray = NDArray[np.float64]
 
 _MAX_THRESHOLD_CANDIDATES = 64
+ThresholdStrategy = Literal[
+    "max_validation_f1",
+    "validation_quantile_95",
+    "validation_quantile_99",
+    "target_recall_50",
+    "target_recall_70",
+]
+THRESHOLD_STRATEGIES = get_args(ThresholdStrategy)
 
 
 @dataclass(frozen=True, order=True)
@@ -299,6 +308,105 @@ def select_threshold_by_range_f1(
     return best_threshold, best_metrics
 
 
+def validate_threshold_strategy(strategy: str) -> None:
+    """Validate an anomaly-threshold selection strategy."""
+
+    if strategy not in THRESHOLD_STRATEGIES:
+        raise ValueError("threshold_strategy must be one of: " + ", ".join(THRESHOLD_STRATEGIES))
+
+
+def select_threshold(
+    scores: ArrayLike,
+    true_labels: ArrayLike,
+    *,
+    strategy: str = "max_validation_f1",
+) -> tuple[float, RangeMetrics]:
+    """Select an anomaly threshold using validation data only."""
+
+    validate_threshold_strategy(strategy)
+    if strategy == "max_validation_f1":
+        return select_threshold_by_range_f1(scores, true_labels)
+    if strategy == "validation_quantile_95":
+        return select_threshold_by_quantile(scores, true_labels, quantile=0.95)
+    if strategy == "validation_quantile_99":
+        return select_threshold_by_quantile(scores, true_labels, quantile=0.99)
+    if strategy == "target_recall_50":
+        return select_threshold_by_target_recall(
+            scores,
+            true_labels,
+            target_recall=0.50,
+            fallback_quantile=0.95,
+        )
+    if strategy == "target_recall_70":
+        return select_threshold_by_target_recall(
+            scores,
+            true_labels,
+            target_recall=0.70,
+            fallback_quantile=0.90,
+        )
+    raise ValueError(f"unsupported threshold strategy: {strategy}")
+
+
+def select_threshold_by_quantile(
+    scores: ArrayLike,
+    true_labels: ArrayLike,
+    *,
+    quantile: float,
+) -> tuple[float, RangeMetrics]:
+    """Select a score-distribution quantile threshold from validation scores."""
+
+    if not 0.0 <= quantile <= 1.0:
+        raise ValueError("quantile must be in [0, 1]")
+    score_array = np.asarray(scores, dtype=np.float64)
+    _ = _binary_array(true_labels, name="true_labels")
+    if score_array.ndim != 1:
+        raise ValueError("scores must be one-dimensional")
+    if np.any(~np.isfinite(score_array)):
+        raise ValueError("scores must be finite")
+    threshold = float(np.quantile(score_array, quantile))
+    metrics = range_precision_recall(true_labels, threshold_scores(score_array, threshold))
+    return threshold, metrics
+
+
+def select_threshold_by_target_recall(
+    scores: ArrayLike,
+    true_labels: ArrayLike,
+    *,
+    target_recall: float,
+    fallback_quantile: float = 0.95,
+) -> tuple[float, RangeMetrics]:
+    """Select the most precise validation threshold that reaches target range recall."""
+
+    if not 0.0 <= target_recall <= 1.0:
+        raise ValueError("target_recall must be in [0, 1]")
+    score_array = np.asarray(scores, dtype=np.float64)
+    labels = _binary_array(true_labels, name="true_labels")
+    if score_array.ndim != 1:
+        raise ValueError("scores must be one-dimensional")
+    if np.any(~np.isfinite(score_array)):
+        raise ValueError("scores must be finite")
+    if not np.any(labels):
+        return select_threshold_by_quantile(
+            score_array,
+            labels,
+            quantile=fallback_quantile,
+        )
+
+    best_threshold: float | None = None
+    best_metrics: RangeMetrics | None = None
+    for threshold in _threshold_candidates(score_array):
+        metrics = range_precision_recall(labels, threshold_scores(score_array, float(threshold)))
+        if metrics.recall < target_recall:
+            continue
+        if best_metrics is None or _is_better_target_recall(metrics, best_metrics):
+            best_threshold = float(threshold)
+            best_metrics = metrics
+
+    if best_threshold is None or best_metrics is None:
+        return select_threshold_by_range_f1(score_array, labels)
+    return best_threshold, best_metrics
+
+
 def detection_delay(true_labels: ArrayLike, pred_labels: ArrayLike) -> DetectionDelay:
     """Return detection delay statistics for true anomalous ranges."""
 
@@ -454,3 +562,11 @@ def _is_better(candidate: RangeMetrics, incumbent: RangeMetrics) -> bool:
     if candidate.recall != incumbent.recall:
         return candidate.recall > incumbent.recall
     return candidate.precision > incumbent.precision
+
+
+def _is_better_target_recall(candidate: RangeMetrics, incumbent: RangeMetrics) -> bool:
+    if candidate.precision != incumbent.precision:
+        return candidate.precision > incumbent.precision
+    if candidate.recall != incumbent.recall:
+        return candidate.recall > incumbent.recall
+    return candidate.f1 > incumbent.f1

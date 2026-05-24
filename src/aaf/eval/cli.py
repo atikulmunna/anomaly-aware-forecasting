@@ -25,6 +25,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Monte Carlo samples used for Energy Score.",
     )
     parser.add_argument("--seed", type=int, default=0, help="Random seed for sampled metrics.")
+    parser.add_argument(
+        "--threshold-strategy",
+        default="max_validation_f1",
+        help="Validation-only anomaly threshold selection strategy.",
+    )
     return parser
 
 
@@ -37,6 +42,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         output_path=output,
         energy_samples=args.energy_samples,
         seed=args.seed,
+        threshold_strategy=args.threshold_strategy,
     )
     return 0
 
