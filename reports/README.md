@@ -15,6 +15,7 @@ Raw datasets and full run artifacts are intentionally local-only.
 - `smd_score_gpu.csv`: selected-machine comparison of anomaly score aggregations.
 - `smd_threshold_gpu.csv`: selected-machine comparison of threshold strategies.
 - `smd_full_calibrated_gpu.csv`: full 28-machine calibrated joint and MDN runs.
+- `smd_joint_tune_gpu.csv`: selected-machine calibrated joint hyperparameter sweep.
 - `summary.csv`: hand-curated headline comparison table.
 
 ## Current Takeaways
@@ -33,6 +34,9 @@ percentile threshold improved full-SMD recall substantially:
 This suggests the current model family has ranking signal, but validation-F1 thresholding is too
 conservative for SMD because the validation split is carved from nominal training data and has no
 anomaly labels.
+
+The first selected-machine joint tuning sweep did not show a gain from increasing regimes or hidden
+size. The calibrated baseline, no-smoothness, and high-smoothness variants tied at F1 `0.2608`.
 
 ## Metric Notes
 
