@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 from aaf.eval.anomaly import (
+    _MAX_THRESHOLD_CANDIDATES,
     Range,
     average_precision_score,
     binary_confusion,
@@ -63,6 +64,14 @@ def test_threshold_candidates_include_above_max_and_descending_scores() -> None:
 
     assert candidates[0] > 0.8
     assert candidates[1:].tolist() == [0.8, 0.2]
+
+
+def test_threshold_candidates_are_capped_for_large_score_sets() -> None:
+    candidates = threshold_candidates(np.arange(_MAX_THRESHOLD_CANDIDATES + 100))
+
+    assert len(candidates) <= _MAX_THRESHOLD_CANDIDATES
+    assert candidates[0] > candidates[1]
+    assert np.all(np.diff(candidates[1:]) <= 0.0)
 
 
 def test_binary_confusion_counts_predictions() -> None:

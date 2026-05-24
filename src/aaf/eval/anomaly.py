@@ -10,6 +10,8 @@ from numpy.typing import ArrayLike, NDArray
 BoolArray = NDArray[np.bool_]
 FloatArray = NDArray[np.float64]
 
+_MAX_THRESHOLD_CANDIDATES = 64
+
 
 @dataclass(frozen=True, order=True)
 class Range:
@@ -381,7 +383,13 @@ def _f1(precision: float, recall: float) -> float:
 def _threshold_candidates(scores: FloatArray) -> FloatArray:
     unique = np.unique(scores)
     above_max = np.nextafter(unique[-1], np.inf)
-    return np.concatenate(([above_max], unique[::-1]))
+    if unique.shape[0] <= _MAX_THRESHOLD_CANDIDATES:
+        return np.concatenate(([above_max], unique[::-1]))
+
+    quantiles = np.linspace(1.0, 0.0, _MAX_THRESHOLD_CANDIDATES - 1, dtype=np.float64)
+    sampled = np.quantile(unique, quantiles)
+    sampled = np.unique(sampled)[::-1]
+    return np.concatenate(([above_max], sampled))
 
 
 def _precision_recall_point(

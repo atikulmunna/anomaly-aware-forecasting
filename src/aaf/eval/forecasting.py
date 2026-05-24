@@ -174,7 +174,7 @@ def central_interval_coverage(
     forecast: MixtureForecast,
     *,
     level: float = 0.9,
-    n_grid: int = 2048,
+    n_grid: int = 128,
 ) -> float:
     """Estimate central predictive interval coverage from mixture CDF grids.
 
@@ -325,14 +325,54 @@ def _mixture_quantiles(
     flat_high = high.reshape(-1, forecast.n_channels)
 
     out = np.empty((2, flat_weights.shape[0], forecast.n_channels), dtype=np.float64)
-    for row in range(flat_weights.shape[0]):
+    row_batch_size = 512
+    for start in range(0, flat_weights.shape[0], row_batch_size):
+        stop = min(start + row_batch_size, flat_weights.shape[0])
+        batch_weights = flat_weights[start:stop]
+        batch_rows = np.arange(stop - start)
         for channel in range(forecast.n_channels):
-            grid = flat_low[row, channel] + grid_unit * (
-                flat_high[row, channel] - flat_low[row, channel]
+            channel_low = flat_low[start:stop, channel]
+            channel_high = flat_high[start:stop, channel]
+            grid = channel_low[:, np.newaxis] + grid_unit[np.newaxis, :] * (
+                channel_high - channel_low
+            )[:, np.newaxis]
+            z = (
+                grid[:, :, np.newaxis]
+                - flat_means[start:stop, np.newaxis, :, channel]
+            ) / flat_stds[start:stop, np.newaxis, :, channel]
+            cdf = np.sum(_normal_cdf(z) * batch_weights[:, np.newaxis, :], axis=-1)
+            out[:, start:stop, channel] = np.stack(
+                [
+                    _interpolate_monotone_grid(grid, cdf, quantile, batch_rows)
+                    for quantile in quantiles
+                ],
+                axis=0,
             )
-            z = (grid[:, np.newaxis] - flat_means[row, :, channel]) / flat_stds[row, :, channel]
-            cdf = _normal_cdf(z) @ flat_weights[row]
-            out[:, row, channel] = np.interp(quantiles, cdf, grid)
 
     shape = forecast.means.shape[:-2] + (forecast.n_channels,)
     return out[0].reshape(shape), out[1].reshape(shape)
+
+
+def _interpolate_monotone_grid(
+    grid: FloatArray,
+    cdf: FloatArray,
+    quantile: float,
+    rows: NDArray[np.int64],
+) -> FloatArray:
+    reached = cdf[:, -1] >= quantile
+    idx = np.argmax(cdf >= quantile, axis=1)
+    idx = np.where(reached, idx, cdf.shape[1] - 1)
+    idx0 = np.maximum(idx - 1, 0)
+
+    x0 = grid[rows, idx0]
+    x1 = grid[rows, idx]
+    y0 = cdf[rows, idx0]
+    y1 = cdf[rows, idx]
+    fraction = np.divide(
+        quantile - y0,
+        y1 - y0,
+        out=np.zeros_like(y0),
+        where=np.abs(y1 - y0) > _MIN_STD,
+    )
+    interpolated = x0 + np.clip(fraction, 0.0, 1.0) * (x1 - x0)
+    return np.where(idx == 0, grid[:, 0], interpolated)
