@@ -14,6 +14,7 @@ from aaf.pipelines.joint_synthetic import JointSyntheticConfig, run_joint_synthe
 from aaf.pipelines.mdn_synthetic import MDNSyntheticConfig, run_mdn_synthetic
 from aaf.pipelines.smd_baseline import SMDBaselineConfig, run_smd_baseline
 from aaf.pipelines.smd_joint import SMDJointConfig, run_smd_joint
+from aaf.pipelines.smd_mdn import SMDMDNConfig, run_smd_mdn
 from aaf.pipelines.synthetic_baseline import SyntheticBaselineConfig, run_synthetic_baseline
 
 
@@ -34,6 +35,7 @@ PIPELINES: dict[str, PipelineRunner] = {
     "synthetic-mdn": (MDNSyntheticConfig, run_mdn_synthetic),
     "synthetic-joint": (JointSyntheticConfig, run_joint_synthetic),
     "smd-baseline": (SMDBaselineConfig, run_smd_baseline),
+    "smd-mdn": (SMDMDNConfig, run_smd_mdn),
     "smd-joint": (SMDJointConfig, run_smd_joint),
 }
 

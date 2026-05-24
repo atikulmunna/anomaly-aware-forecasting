@@ -5,7 +5,7 @@ import tomllib
 from aaf import __version__
 from aaf.data import SMDMachineSplit
 from aaf.experiments import SuiteJob, collect_run_rows
-from aaf.pipelines import SMDBaselineConfig, SMDJointConfig
+from aaf.pipelines import SMDBaselineConfig, SMDJointConfig, SMDMDNConfig
 
 
 def test_package_version_is_defined() -> None:
@@ -19,6 +19,7 @@ def test_data_package_exports_smd_container() -> None:
 def test_pipeline_package_exports_smd_configs() -> None:
     assert SMDBaselineConfig.__name__ == "SMDBaselineConfig"
     assert SMDJointConfig.__name__ == "SMDJointConfig"
+    assert SMDMDNConfig.__name__ == "SMDMDNConfig"
 
 
 def test_project_scripts_include_smd_entrypoints() -> None:
@@ -29,6 +30,7 @@ def test_project_scripts_include_smd_entrypoints() -> None:
 
     assert scripts["aaf-smd-baseline"] == "aaf.pipelines.smd_baseline:main"
     assert scripts["aaf-smd-joint"] == "aaf.pipelines.smd_joint:main"
+    assert scripts["aaf-smd-mdn"] == "aaf.pipelines.smd_mdn:main"
     assert scripts["aaf-compare-runs"] == "aaf.experiments.cli:main"
     assert scripts["aaf-run-suite"] == "aaf.experiments.suite_cli:main"
 
