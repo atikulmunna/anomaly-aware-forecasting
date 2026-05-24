@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
 import numpy as np
 from numpy.typing import ArrayLike
@@ -92,6 +93,7 @@ def make_windowed_dataset(
     lookback: int,
     horizon: int,
     stride: int = 1,
+    dtype: Any = np.float64,
 ) -> WindowedDataset:
     """Create deterministic sliding windows from a synthetic series."""
 
@@ -107,13 +109,14 @@ def make_windowed_dataset(
     if max_start < 1:
         raise ValueError("series is too short for requested lookback and horizon")
 
+    observations = np.asarray(series.observations, dtype=dtype)
     starts = np.arange(0, max_start, stride, dtype=np.int64)
     windows = np.stack(
-        [series.observations[start : start + lookback] for start in starts],
+        [observations[start : start + lookback] for start in starts],
         axis=0,
     )
     targets = np.stack(
-        [series.observations[start + lookback : start + lookback + horizon] for start in starts],
+        [observations[start + lookback : start + lookback + horizon] for start in starts],
         axis=0,
     )
     label_index = starts + lookback - 1
@@ -122,8 +125,8 @@ def make_windowed_dataset(
     )
     anomaly_labels = np.fromiter((int(np.any(labels)) for labels in target_slices), dtype=np.int64)
     return WindowedDataset(
-        windows=np.asarray(windows, dtype=np.float64),
-        targets=np.asarray(targets, dtype=np.float64),
+        windows=np.asarray(windows, dtype=dtype),
+        targets=np.asarray(targets, dtype=dtype),
         regime_labels=np.asarray(series.regime_labels[label_index], dtype=np.int64),
         anomaly_labels=anomaly_labels,
     )

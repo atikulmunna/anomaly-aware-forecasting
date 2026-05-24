@@ -264,3 +264,6 @@ def test_prepare_smd_windowed_datasets_returns_all_splits(tmp_path) -> None:
     assert len(validation) > 0
     assert len(test) > 0
     assert len(standardizers) == 2
+    assert train.windows.dtype == np.float32
+    assert validation.targets.dtype == np.float32
+    assert test.windows.dtype == np.float32

@@ -59,6 +59,13 @@ def test_make_windowed_dataset_exposes_expected_tuple_structure() -> None:
     assert anomaly_label == 1
 
 
+def test_make_windowed_dataset_accepts_output_dtype() -> None:
+    dataset = make_windowed_dataset(make_series(), lookback=3, horizon=2, dtype=np.float32)
+
+    assert dataset.windows.dtype == np.float32
+    assert dataset.targets.dtype == np.float32
+
+
 def test_make_windowed_dataset_uses_target_window_for_anomaly_label() -> None:
     dataset = make_windowed_dataset(make_series(), lookback=4, horizon=2)
 

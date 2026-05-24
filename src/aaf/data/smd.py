@@ -192,6 +192,7 @@ def make_smd_windowed_splits(
             lookback=lookback,
             horizon=horizon,
             stride=stride,
+            dtype=np.float32,
         ),
         make_windowed_dataset(
             make_smd_series(
@@ -202,6 +203,7 @@ def make_smd_windowed_splits(
             lookback=lookback,
             horizon=horizon,
             stride=stride,
+            dtype=np.float32,
         ),
         make_windowed_dataset(
             make_smd_series(
@@ -212,6 +214,7 @@ def make_smd_windowed_splits(
             lookback=lookback,
             horizon=horizon,
             stride=stride,
+            dtype=np.float32,
         ),
     )
 
