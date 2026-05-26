@@ -20,6 +20,7 @@ Raw datasets and full run artifacts are intentionally local-only.
 - `smd_mdn_tune_gpu.csv`: selected-machine calibrated MDN-LSTM hyperparameter sweep.
 - `smd_joint_regime_score_gpu.csv`: selected-machine joint scoring sweep using regime posteriors.
 - `smd_joint_pseudo_tune_gpu.csv`: selected-machine joint sweep with train-fitted pseudo-regime labels.
+- `smd_persistence_gpu.csv`: selected-machine joint and MDN sweep with anomaly persistence filtering.
 - `summary.csv`: hand-curated headline comparison table.
 
 ## Current Takeaways
@@ -61,6 +62,11 @@ to beat the best selected-machine joint run. Strong pseudo-regime supervision im
 `0.2085` to `0.2361`; the earlier selected-machine joint tuning baseline remains higher at
 `0.2608`.
 
+Persistence filtering is the first selected-machine change to reach the desired F1 band. A 2-of-5
+filter on the calibrated joint model improved F1 from `0.2479` to `0.2951`, raising precision from
+`0.2253` to `0.4235` while recall moved from `0.2755` to `0.2264`. The same filter did not improve
+the selected MDN-LSTM, whose F1 dropped from `0.2320` to `0.2181`.
+
 ## Metric Notes
 
 - `anomaly.threshold_strategy=max_validation_f1` is the original protocol.
@@ -71,5 +77,7 @@ to beat the best selected-machine joint run. Strong pseudo-regime supervision im
   derived from the regime posterior.
 - `window_kmeans` pseudo-regime labels are fitted on training windows only and then applied
   unchanged to validation and test windows.
+- `anomaly_persistence_window` and `anomaly_persistence_count` post-process thresholded
+  predictions using a trailing-window persistence rule.
 - Full-scale reports use capped threshold sweeps and a 128-point interval-coverage grid to keep
   evaluation tractable on all 28 SMD machines.
