@@ -18,6 +18,7 @@ Raw datasets and full run artifacts are intentionally local-only.
 - `smd_joint_full_persistence_gpu.csv`: full 28-machine joint run with 2-of-5 persistence filtering.
 - `smd_joint_full_threshold_persistence_gpu.csv`: full 28-machine joint q98 threshold plus 2-of-5 persistence run.
 - `smd_joint_full_threshold_persistence_q985_gpu.csv`: full 28-machine joint q98.5 threshold plus 2-of-5 persistence run.
+- `smd_joint_full_per_machine_threshold_gpu.csv`: full 28-machine joint per-machine q98 threshold plus 2-of-5 persistence run.
 - `smd_mdn_full_tuned_gpu.csv`: full 28-machine run of the selected-machine MDN tuning winner.
 - `smd_joint_tune_gpu.csv`: selected-machine calibrated joint hyperparameter sweep.
 - `smd_mdn_tune_gpu.csv`: selected-machine calibrated MDN-LSTM hyperparameter sweep.
@@ -93,6 +94,11 @@ the global q99 reference `0.2400` to `0.2749`, raising recall from `0.1752` to `
 precision fell from `0.3811` to `0.2243`. This suggests machine-specific calibration can recover
 missed events, but the signal should be checked on all 28 machines before treating it as a benchmark
 gain.
+
+The full-SMD per-machine q98 check did not generalize. It reached recall `0.4610`, but precision
+fell to `0.0800`, producing F1 `0.1364`. This is below the global q99 persistence result (`0.2409`)
+and also below the full global q98 persistence result (`0.1728`), so per-machine q98 should not be
+promoted as the benchmark setting.
 
 ## Metric Notes
 
