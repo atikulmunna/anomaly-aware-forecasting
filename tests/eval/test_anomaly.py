@@ -301,6 +301,28 @@ def test_select_threshold_dispatches_strategy() -> None:
     assert threshold == pytest.approx(2.85)
 
 
+@pytest.mark.parametrize(
+    ("strategy", "expected"),
+    [
+        ("validation_quantile_98", 2.94),
+        ("validation_quantile_985", 2.955),
+        ("validation_quantile_993", 2.979),
+        ("validation_quantile_995", 2.985),
+        ("validation_quantile_997", 2.991),
+    ],
+)
+def test_select_threshold_dispatches_high_quantile_strategies(
+    strategy: str,
+    expected: float,
+) -> None:
+    scores = np.array([0.0, 1.0, 2.0, 3.0])
+    labels = np.array([0, 0, 0, 0])
+
+    threshold, _metrics = select_threshold(scores, labels, strategy=strategy)
+
+    assert threshold == pytest.approx(expected)
+
+
 def test_detection_delay_reports_first_hit_inside_each_range() -> None:
     true = np.array([0, 1, 1, 1, 0, 1, 1])
     pred = np.array([0, 0, 0, 1, 0, 0, 0])

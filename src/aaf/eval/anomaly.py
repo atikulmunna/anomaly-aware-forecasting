@@ -15,11 +15,25 @@ _MAX_THRESHOLD_CANDIDATES = 64
 ThresholdStrategy = Literal[
     "max_validation_f1",
     "validation_quantile_95",
+    "validation_quantile_98",
+    "validation_quantile_985",
     "validation_quantile_99",
+    "validation_quantile_993",
+    "validation_quantile_995",
+    "validation_quantile_997",
     "target_recall_50",
     "target_recall_70",
 ]
 THRESHOLD_STRATEGIES = get_args(ThresholdStrategy)
+QUANTILE_THRESHOLD_STRATEGIES = {
+    "validation_quantile_95": 0.95,
+    "validation_quantile_98": 0.98,
+    "validation_quantile_985": 0.985,
+    "validation_quantile_99": 0.99,
+    "validation_quantile_993": 0.993,
+    "validation_quantile_995": 0.995,
+    "validation_quantile_997": 0.997,
+}
 
 
 @dataclass(frozen=True, order=True)
@@ -360,10 +374,12 @@ def select_threshold(
     validate_threshold_strategy(strategy)
     if strategy == "max_validation_f1":
         return select_threshold_by_range_f1(scores, true_labels)
-    if strategy == "validation_quantile_95":
-        return select_threshold_by_quantile(scores, true_labels, quantile=0.95)
-    if strategy == "validation_quantile_99":
-        return select_threshold_by_quantile(scores, true_labels, quantile=0.99)
+    if strategy in QUANTILE_THRESHOLD_STRATEGIES:
+        return select_threshold_by_quantile(
+            scores,
+            true_labels,
+            quantile=QUANTILE_THRESHOLD_STRATEGIES[strategy],
+        )
     if strategy == "target_recall_50":
         return select_threshold_by_target_recall(
             scores,
