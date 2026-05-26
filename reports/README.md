@@ -19,6 +19,7 @@ Raw datasets and full run artifacts are intentionally local-only.
 - `smd_joint_full_threshold_persistence_gpu.csv`: full 28-machine joint q98 threshold plus 2-of-5 persistence run.
 - `smd_joint_full_threshold_persistence_q985_gpu.csv`: full 28-machine joint q98.5 threshold plus 2-of-5 persistence run.
 - `smd_joint_full_per_machine_threshold_gpu.csv`: full 28-machine joint per-machine q98 threshold plus 2-of-5 persistence run.
+- `smd_joint_full_rescore_threshold_gpu.csv`: anomaly-only full-SMD rescore of high global quantiles with 2-of-5 persistence.
 - `smd_mdn_full_tuned_gpu.csv`: full 28-machine run of the selected-machine MDN tuning winner.
 - `smd_joint_tune_gpu.csv`: selected-machine calibrated joint hyperparameter sweep.
 - `smd_mdn_tune_gpu.csv`: selected-machine calibrated MDN-LSTM hyperparameter sweep.
@@ -99,6 +100,12 @@ The full-SMD per-machine q98 check did not generalize. It reached recall `0.4610
 fell to `0.0800`, producing F1 `0.1364`. This is below the global q99 persistence result (`0.2409`)
 and also below the full global q98 persistence result (`0.1728`), so per-machine q98 should not be
 promoted as the benchmark setting.
+
+An anomaly-only rescore of the full joint q99 persistence artifacts found the first full-SMD joint
+setting above the target F1 band. Raising the global validation quantile to q99.3 while keeping
+2-of-5 persistence improved F1 from `0.2409` to `0.2628`, with precision `0.2227` and recall
+`0.3204`. More conservative q99.5 and q99.7 thresholds reduced F1 to `0.2485` and `0.2295`,
+respectively, so q99.3 is the current best full-SMD joint benchmark setting.
 
 ## Metric Notes
 
