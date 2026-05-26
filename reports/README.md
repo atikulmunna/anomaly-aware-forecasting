@@ -16,6 +16,7 @@ Raw datasets and full run artifacts are intentionally local-only.
 - `smd_threshold_gpu.csv`: selected-machine comparison of threshold strategies.
 - `smd_full_calibrated_gpu.csv`: full 28-machine calibrated joint and MDN runs.
 - `smd_joint_full_persistence_gpu.csv`: full 28-machine joint run with 2-of-5 persistence filtering.
+- `smd_joint_full_threshold_persistence_gpu.csv`: full 28-machine joint q98 threshold plus 2-of-5 persistence run.
 - `smd_mdn_full_tuned_gpu.csv`: full 28-machine run of the selected-machine MDN tuning winner.
 - `smd_joint_tune_gpu.csv`: selected-machine calibrated joint hyperparameter sweep.
 - `smd_mdn_tune_gpu.csv`: selected-machine calibrated MDN-LSTM hyperparameter sweep.
@@ -77,6 +78,10 @@ MDN-LSTM F1 `0.2310`, but still below the target `0.26+` benchmark threshold.
 Lowering the validation quantile while keeping 2-of-5 persistence was strongly positive on selected
 SMD machines. The best selected setting was q98 with F1 `0.3928`, precision `0.3699`, and recall
 `0.4187`; q98.5 remained strong at F1 `0.3561`, while q99.3 and above became too conservative.
+
+The selected q98 result did not generalize to full SMD. Full q98 with 2-of-5 persistence reached
+recall `0.4361`, but precision dropped to `0.1077`, lowering F1 to `0.1728`. The less aggressive
+q98.5 selected result is the next full-scale candidate.
 
 ## Metric Notes
 
