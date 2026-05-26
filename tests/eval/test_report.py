@@ -65,6 +65,23 @@ def test_evaluate_anomaly_supports_quantile_threshold_strategy() -> None:
     assert report.test.recall == pytest.approx(0.5)
 
 
+def test_evaluate_anomaly_applies_persistence_filter_after_threshold_selection() -> None:
+    report = evaluate_anomaly(
+        np.array([0.1, 0.9, 0.1, 0.9, 0.9]),
+        np.array([0, 0, 0, 0, 0]),
+        np.array([0.1, 0.9, 0.1, 0.9, 0.9]),
+        np.array([0, 0, 0, 1, 1]),
+        threshold_strategy="validation_quantile_95",
+        persistence_window=3,
+        persistence_count=2,
+    )
+
+    assert report.persistence_window == 3
+    assert report.persistence_count == 2
+    assert report.test.precision == pytest.approx(1.0)
+    assert report.test.recall == pytest.approx(1.0)
+
+
 def test_evaluate_regime_aligns_permuted_labels() -> None:
     true = np.array([0, 0, 1, 1])
     pred = np.array([1, 1, 0, 0])
@@ -116,6 +133,8 @@ def test_evaluate_run_directory_writes_metrics_json(tmp_path) -> None:
     assert saved["forecast"]["nll"] == pytest.approx(report.forecast.nll)
     assert saved["forecast"]["diagnostics"]["active_components_1pct"] == 1
     assert saved["anomaly"]["threshold_strategy"] == "validation_quantile_95"
+    assert saved["anomaly"]["persistence_window"] == 1
+    assert saved["anomaly"]["persistence_count"] == 1
     assert saved["anomaly"]["threshold_free"]["vus_pr"] == pytest.approx(1.0)
     assert saved["anomaly"]["threshold_free"]["vus_roc"] == pytest.approx(1.0)
     assert saved["regime"]["adjusted_rand_index"] == pytest.approx(1.0)
@@ -148,6 +167,10 @@ def test_cli_writes_default_metrics_path(tmp_path) -> None:
             "16",
             "--threshold-strategy",
             "validation_quantile_95",
+            "--persistence-window",
+            "2",
+            "--persistence-count",
+            "1",
         ]
     )
 
@@ -155,3 +178,5 @@ def test_cli_writes_default_metrics_path(tmp_path) -> None:
     assert (tmp_path / "metrics.json").exists()
     saved = json.loads((tmp_path / "metrics.json").read_text(encoding="utf-8"))
     assert saved["anomaly"]["threshold_strategy"] == "validation_quantile_95"
+    assert saved["anomaly"]["persistence_window"] == 2
+    assert saved["anomaly"]["persistence_count"] == 1

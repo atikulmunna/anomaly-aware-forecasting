@@ -149,6 +149,40 @@ def threshold_scores(scores: ArrayLike, threshold: float) -> BoolArray:
     return np.asarray(score_array >= threshold, dtype=np.bool_)
 
 
+def apply_persistence_filter(
+    pred_labels: ArrayLike,
+    *,
+    window: int = 1,
+    count: int = 1,
+) -> BoolArray:
+    """Suppress predictions that do not persist within a trailing window."""
+
+    predictions = _binary_array(pred_labels, name="pred_labels")
+    validate_persistence(window=window, count=count)
+    if window == 1 and count == 1:
+        return np.asarray(predictions.copy(), dtype=np.bool_)
+
+    values = predictions.astype(np.int64)
+    cumulative = np.concatenate(([0], np.cumsum(values, dtype=np.int64)))
+    filtered = np.zeros(predictions.shape, dtype=np.bool_)
+    for index in range(predictions.shape[0]):
+        start = max(0, index - window + 1)
+        positive_count = cumulative[index + 1] - cumulative[start]
+        filtered[index] = positive_count >= count
+    return filtered
+
+
+def validate_persistence(*, window: int = 1, count: int = 1) -> None:
+    """Validate persistence post-processing parameters."""
+
+    if window < 1:
+        raise ValueError("anomaly_persistence_window must be positive")
+    if count < 1:
+        raise ValueError("anomaly_persistence_count must be positive")
+    if count > window:
+        raise ValueError("anomaly_persistence_count must be <= anomaly_persistence_window")
+
+
 def threshold_candidates(scores: ArrayLike) -> FloatArray:
     """Return deterministic score thresholds for threshold-free sweeps."""
 

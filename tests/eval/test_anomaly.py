@@ -6,6 +6,7 @@ import pytest
 from aaf.eval.anomaly import (
     _MAX_THRESHOLD_CANDIDATES,
     Range,
+    apply_persistence_filter,
     average_precision_score,
     binary_confusion,
     binary_ranges,
@@ -24,6 +25,7 @@ from aaf.eval.anomaly import (
     threshold_free_metrics,
     threshold_scores,
     trapezoidal_area,
+    validate_persistence,
     vus_pr_score,
     vus_roc_score,
 )
@@ -60,6 +62,27 @@ def test_threshold_scores_marks_large_scores_as_anomalous() -> None:
     scores = np.array([0.1, 0.5, 0.9])
 
     assert threshold_scores(scores, 0.5).tolist() == [False, True, True]
+
+
+def test_apply_persistence_filter_suppresses_isolated_predictions() -> None:
+    predictions = np.array([0, 1, 0, 1, 1, 0, 1])
+
+    filtered = apply_persistence_filter(predictions, window=3, count=2)
+
+    assert filtered.tolist() == [False, False, False, True, True, True, True]
+
+
+def test_apply_persistence_filter_default_preserves_predictions() -> None:
+    predictions = np.array([0, 1, 0, 1])
+
+    filtered = apply_persistence_filter(predictions)
+
+    assert filtered.tolist() == [False, True, False, True]
+
+
+def test_validate_persistence_rejects_count_larger_than_window() -> None:
+    with pytest.raises(ValueError, match="persistence_count"):
+        validate_persistence(window=2, count=3)
 
 
 def test_threshold_candidates_include_above_max_and_descending_scores() -> None:

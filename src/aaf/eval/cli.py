@@ -30,6 +30,18 @@ def build_parser() -> argparse.ArgumentParser:
         default="max_validation_f1",
         help="Validation-only anomaly threshold selection strategy.",
     )
+    parser.add_argument(
+        "--persistence-window",
+        type=int,
+        default=1,
+        help="Trailing window for anomaly prediction persistence filtering.",
+    )
+    parser.add_argument(
+        "--persistence-count",
+        type=int,
+        default=1,
+        help="Minimum positives in the trailing persistence window.",
+    )
     return parser
 
 
@@ -43,6 +55,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         energy_samples=args.energy_samples,
         seed=args.seed,
         threshold_strategy=args.threshold_strategy,
+        persistence_window=args.persistence_window,
+        persistence_count=args.persistence_count,
     )
     return 0
 

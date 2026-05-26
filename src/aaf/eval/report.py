@@ -14,12 +14,14 @@ from aaf.eval.anomaly import (
     DetectionDelay,
     RangeMetrics,
     ThresholdFreeMetrics,
+    apply_persistence_filter,
     detection_delay,
     false_alarm_rate_per_1000,
     range_precision_recall,
     select_threshold,
     threshold_free_metrics,
     threshold_scores,
+    validate_persistence,
     validate_threshold_strategy,
 )
 from aaf.eval.diagnostics import MixtureDiagnostics, mixture_diagnostics
@@ -57,6 +59,8 @@ class ForecastReport:
 class AnomalyReport:
     threshold_strategy: str
     threshold: float
+    persistence_window: int
+    persistence_count: int
     validation: RangeMetrics
     test: RangeMetrics
     threshold_free: ThresholdFreeMetrics
@@ -115,20 +119,35 @@ def evaluate_anomaly(
     test_labels: IntArray,
     *,
     threshold_strategy: str = "max_validation_f1",
+    persistence_window: int = 1,
+    persistence_count: int = 1,
 ) -> AnomalyReport:
     """Select an anomaly threshold on validation data and evaluate on test data."""
 
     validate_threshold_strategy(threshold_strategy)
+    validate_persistence(window=persistence_window, count=persistence_count)
     threshold, validation_metrics = select_threshold(
         validation_scores,
         validation_labels,
         strategy=threshold_strategy,
     )
-    test_predictions = threshold_scores(test_scores, threshold)
+    validation_predictions = apply_persistence_filter(
+        threshold_scores(validation_scores, threshold),
+        window=persistence_window,
+        count=persistence_count,
+    )
+    validation_metrics = range_precision_recall(validation_labels, validation_predictions)
+    test_predictions = apply_persistence_filter(
+        threshold_scores(test_scores, threshold),
+        window=persistence_window,
+        count=persistence_count,
+    )
     test_metrics = range_precision_recall(test_labels, test_predictions)
     return AnomalyReport(
         threshold_strategy=threshold_strategy,
         threshold=threshold,
+        persistence_window=persistence_window,
+        persistence_count=persistence_count,
         validation=validation_metrics,
         test=test_metrics,
         threshold_free=threshold_free_metrics(test_scores, test_labels),
@@ -159,6 +178,8 @@ def evaluate_run_directory(
     energy_samples: int = 256,
     seed: int = 0,
     threshold_strategy: str = "max_validation_f1",
+    persistence_window: int = 1,
+    persistence_count: int = 1,
 ) -> EvaluationReport:
     """Evaluate any supported artifacts found in a run directory.
 
@@ -196,6 +217,8 @@ def evaluate_run_directory(
             test_scores,
             test_labels,
             threshold_strategy=threshold_strategy,
+            persistence_window=persistence_window,
+            persistence_count=persistence_count,
         )
 
     regime_report = None

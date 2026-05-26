@@ -74,6 +74,15 @@ def test_smd_joint_config_rejects_unknown_threshold_strategy(tmp_path) -> None:
         SMDJointConfig(root=tmp_path, threshold_strategy="unknown").validate()
 
 
+def test_smd_joint_config_rejects_invalid_persistence(tmp_path) -> None:
+    with pytest.raises(ValueError, match="persistence_count"):
+        SMDJointConfig(
+            root=tmp_path,
+            anomaly_persistence_window=2,
+            anomaly_persistence_count=3,
+        ).validate()
+
+
 def test_smd_joint_config_requires_pseudo_labels_for_supervised_regime_loss(tmp_path) -> None:
     with pytest.raises(ValueError, match="pseudo_regime_method"):
         SMDJointConfig(root=tmp_path, supervised_regime_weight=0.1).validate()

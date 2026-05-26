@@ -71,6 +71,15 @@ def test_smd_mdn_config_rejects_unknown_threshold_strategy(tmp_path) -> None:
         SMDMDNConfig(root=tmp_path, threshold_strategy="unknown").validate()
 
 
+def test_smd_mdn_config_rejects_invalid_persistence(tmp_path) -> None:
+    with pytest.raises(ValueError, match="persistence_count"):
+        SMDMDNConfig(
+            root=tmp_path,
+            anomaly_persistence_window=2,
+            anomaly_persistence_count=3,
+        ).validate()
+
+
 def test_build_smd_mdn_datasets_returns_windowed_splits(tmp_path) -> None:
     write_smd_fixture(tmp_path)
 
