@@ -19,6 +19,7 @@ Raw datasets and full run artifacts are intentionally local-only.
 - `smd_joint_tune_gpu.csv`: selected-machine calibrated joint hyperparameter sweep.
 - `smd_mdn_tune_gpu.csv`: selected-machine calibrated MDN-LSTM hyperparameter sweep.
 - `smd_joint_regime_score_gpu.csv`: selected-machine joint scoring sweep using regime posteriors.
+- `smd_joint_pseudo_tune_gpu.csv`: selected-machine joint sweep with train-fitted pseudo-regime labels.
 - `summary.csv`: hand-curated headline comparison table.
 
 ## Current Takeaways
@@ -55,6 +56,11 @@ NLL reached F1 `0.2116` in the regime-score sweep, while regime entropy and regi
 were near F1 `0.10`. This indicates the unsupervised regime posterior is not yet a reliable
 standalone anomaly score on SMD.
 
+Pseudo-regime supervision helped compared with the same-seed unsupervised reference, but not enough
+to beat the best selected-machine joint run. Strong pseudo-regime supervision improved F1 from
+`0.2085` to `0.2361`; the earlier selected-machine joint tuning baseline remains higher at
+`0.2608`.
+
 ## Metric Notes
 
 - `anomaly.threshold_strategy=max_validation_f1` is the original protocol.
@@ -63,5 +69,7 @@ standalone anomaly score on SMD.
 - `channel_max_nll` computes marginal per-channel NLL and uses the largest channel score.
 - `regime_entropy`, `regime_confidence_gap`, and `regime_switch` are joint-only scoring methods
   derived from the regime posterior.
+- `window_kmeans` pseudo-regime labels are fitted on training windows only and then applied
+  unchanged to validation and test windows.
 - Full-scale reports use capped threshold sweeps and a 128-point interval-coverage grid to keep
   evaluation tractable on all 28 SMD machines.
