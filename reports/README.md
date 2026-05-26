@@ -17,6 +17,7 @@ Raw datasets and full run artifacts are intentionally local-only.
 - `smd_full_calibrated_gpu.csv`: full 28-machine calibrated joint and MDN runs.
 - `smd_joint_full_persistence_gpu.csv`: full 28-machine joint run with 2-of-5 persistence filtering.
 - `smd_joint_full_threshold_persistence_gpu.csv`: full 28-machine joint q98 threshold plus 2-of-5 persistence run.
+- `smd_joint_full_threshold_persistence_q985_gpu.csv`: full 28-machine joint q98.5 threshold plus 2-of-5 persistence run.
 - `smd_mdn_full_tuned_gpu.csv`: full 28-machine run of the selected-machine MDN tuning winner.
 - `smd_joint_tune_gpu.csv`: selected-machine calibrated joint hyperparameter sweep.
 - `smd_mdn_tune_gpu.csv`: selected-machine calibrated MDN-LSTM hyperparameter sweep.
@@ -81,7 +82,9 @@ SMD machines. The best selected setting was q98 with F1 `0.3928`, precision `0.3
 
 The selected q98 result did not generalize to full SMD. Full q98 with 2-of-5 persistence reached
 recall `0.4361`, but precision dropped to `0.1077`, lowering F1 to `0.1728`. The less aggressive
-q98.5 selected result is the next full-scale candidate.
+q98.5 threshold was better but still below q99 persistence: full q98.5 reached F1 `0.1931`,
+precision `0.1276`, and recall `0.3974`. Global q99 plus 2-of-5 persistence remains the best
+full-SMD joint setting so far at F1 `0.2409`.
 
 ## Metric Notes
 
