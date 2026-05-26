@@ -16,7 +16,7 @@ from aaf.data.preprocessing import Standardizer, WindowedDataset
 from aaf.data.smd import prepare_smd_windowed_datasets
 from aaf.data.synthetic import FloatArray
 from aaf.eval.anomaly import validate_threshold_strategy
-from aaf.eval.anomaly_scores import forecast_anomaly_scores, validate_anomaly_score_method
+from aaf.eval.anomaly_scores import joint_anomaly_scores, validate_joint_anomaly_score_method
 from aaf.eval.artifacts import write_mixture_diagnostics_json, write_regime_diagnostics_json
 from aaf.eval.forecasting import MixtureForecast
 from aaf.eval.report import EvaluationReport, evaluate_run_directory
@@ -85,7 +85,7 @@ class SMDJointConfig:
             raise ValueError("energy_samples must be at least 2")
         if not self.device:
             raise ValueError("device must be non-empty")
-        validate_anomaly_score_method(self.anomaly_score_method)
+        validate_joint_anomaly_score_method(self.anomaly_score_method)
         validate_threshold_strategy(self.threshold_strategy)
 
 
@@ -137,13 +137,13 @@ def run_smd_joint(
     write_smd_joint_anomaly_artifact(
         output_dir / "anomaly_validation.npz",
         validation,
-        validation_prediction.forecast,
+        validation_prediction,
         method=config.anomaly_score_method,
     )
     write_smd_joint_anomaly_artifact(
         output_dir / "anomaly_test.npz",
         test,
-        test_prediction.forecast,
+        test_prediction,
         method=config.anomaly_score_method,
     )
     write_smd_joint_regime_artifact(output_dir / "regime.npz", test, test_prediction)
@@ -309,13 +309,18 @@ def write_smd_joint_forecast_artifact(
 def write_smd_joint_anomaly_artifact(
     path: Path,
     dataset: WindowedDataset,
-    forecast: MixtureForecast,
+    prediction: JointPrediction,
     *,
     method: str = "mean_nll",
 ) -> None:
-    """Write joint SMD anomaly scores from forecast likelihoods."""
+    """Write joint SMD anomaly scores from forecast likelihoods or regime posteriors."""
 
-    scores = forecast_anomaly_scores(dataset.targets, forecast, method=method)
+    scores = joint_anomaly_scores(
+        dataset.targets,
+        prediction.forecast,
+        prediction.regime_probs,
+        method=method,
+    )
     np.savez(path, scores=scores, labels=dataset.anomaly_labels)
 
 

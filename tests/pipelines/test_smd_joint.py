@@ -158,7 +158,7 @@ def test_smd_joint_artifact_writers_emit_npz_files(tmp_path) -> None:
     write_smd_joint_anomaly_artifact(
         tmp_path / "anomaly.npz",
         test,
-        test_prediction.forecast,
+        test_prediction,
         method="channel_max_nll",
     )
     write_smd_joint_regime_artifact(tmp_path / "regime.npz", test, test_prediction)
