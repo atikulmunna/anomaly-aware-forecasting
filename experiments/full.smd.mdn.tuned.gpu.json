@@ -1,0 +1,30 @@
+{
+  "name": "smd-mdn-full-tuned-gpu",
+  "jobs": [
+    {
+      "run_id": "smd-mdn-full-hidden32-calibrated-gpu",
+      "pipeline": "smd-mdn",
+      "dataset": "smd",
+      "notes": "GPU SMD non-regime MDN-LSTM over all 28 machines using the selected-machine hidden32 tuning winner",
+      "params": {
+        "root": "datasets/SMD",
+        "machine_ids": null,
+        "validation_fraction": 0.2,
+        "lookback": 100,
+        "horizon": 1,
+        "stride": 4,
+        "hidden_size": 32,
+        "num_layers": 1,
+        "n_components": 3,
+        "epochs": 5,
+        "batch_size": 128,
+        "learning_rate": 0.001,
+        "energy_samples": 32,
+        "seed": 902,
+        "device": "cuda",
+        "anomaly_score_method": "channel_max_nll",
+        "threshold_strategy": "validation_quantile_99"
+      }
+    }
+  ]
+}
