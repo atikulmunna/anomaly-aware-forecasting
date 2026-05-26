@@ -22,6 +22,7 @@ Raw datasets and full run artifacts are intentionally local-only.
 - `smd_joint_regime_score_gpu.csv`: selected-machine joint scoring sweep using regime posteriors.
 - `smd_joint_pseudo_tune_gpu.csv`: selected-machine joint sweep with train-fitted pseudo-regime labels.
 - `smd_persistence_gpu.csv`: selected-machine joint and MDN sweep with anomaly persistence filtering.
+- `smd_threshold_persistence_gpu.csv`: selected-machine joint sweep of quantile thresholds with 2-of-5 persistence.
 - `summary.csv`: hand-curated headline comparison table.
 
 ## Current Takeaways
@@ -73,11 +74,15 @@ joint model: F1 improved from `0.2289` to `0.2409`, and precision improved from 
 `0.1822`, while recall dropped from `0.5125` to `0.3552`. This is now slightly above the calibrated
 MDN-LSTM F1 `0.2310`, but still below the target `0.26+` benchmark threshold.
 
+Lowering the validation quantile while keeping 2-of-5 persistence was strongly positive on selected
+SMD machines. The best selected setting was q98 with F1 `0.3928`, precision `0.3699`, and recall
+`0.4187`; q98.5 remained strong at F1 `0.3561`, while q99.3 and above became too conservative.
+
 ## Metric Notes
 
 - `anomaly.threshold_strategy=max_validation_f1` is the original protocol.
-- `validation_quantile_99` selects the 99th percentile of validation scores using validation data
-  only; the test score distribution is not used for threshold selection.
+- `validation_quantile_*` strategies select validation-score quantiles using validation data only;
+  the test score distribution is not used for threshold selection.
 - `channel_max_nll` computes marginal per-channel NLL and uses the largest channel score.
 - `regime_entropy`, `regime_confidence_gap`, and `regime_switch` are joint-only scoring methods
   derived from the regime posterior.
