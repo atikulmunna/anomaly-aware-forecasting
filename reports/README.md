@@ -15,6 +15,7 @@ Raw datasets and full run artifacts are intentionally local-only.
 - `smd_score_gpu.csv`: selected-machine comparison of anomaly score aggregations.
 - `smd_threshold_gpu.csv`: selected-machine comparison of threshold strategies.
 - `smd_full_calibrated_gpu.csv`: full 28-machine calibrated joint and MDN runs.
+- `smd_joint_full_persistence_gpu.csv`: full 28-machine joint run with 2-of-5 persistence filtering.
 - `smd_mdn_full_tuned_gpu.csv`: full 28-machine run of the selected-machine MDN tuning winner.
 - `smd_joint_tune_gpu.csv`: selected-machine calibrated joint hyperparameter sweep.
 - `smd_mdn_tune_gpu.csv`: selected-machine calibrated MDN-LSTM hyperparameter sweep.
@@ -66,6 +67,11 @@ Persistence filtering is the first selected-machine change to reach the desired 
 filter on the calibrated joint model improved F1 from `0.2479` to `0.2951`, raising precision from
 `0.2253` to `0.4235` while recall moved from `0.2755` to `0.2264`. The same filter did not improve
 the selected MDN-LSTM, whose F1 dropped from `0.2320` to `0.2181`.
+
+On the full 28-machine SMD benchmark, 2-of-5 persistence gave a smaller but useful gain for the
+joint model: F1 improved from `0.2289` to `0.2409`, and precision improved from `0.1474` to
+`0.1822`, while recall dropped from `0.5125` to `0.3552`. This is now slightly above the calibrated
+MDN-LSTM F1 `0.2310`, but still below the target `0.26+` benchmark threshold.
 
 ## Metric Notes
 
