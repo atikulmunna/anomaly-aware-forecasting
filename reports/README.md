@@ -25,6 +25,7 @@ Raw datasets and full run artifacts are intentionally local-only.
 - `smd_joint_pseudo_tune_gpu.csv`: selected-machine joint sweep with train-fitted pseudo-regime labels.
 - `smd_persistence_gpu.csv`: selected-machine joint and MDN sweep with anomaly persistence filtering.
 - `smd_threshold_persistence_gpu.csv`: selected-machine joint sweep of quantile thresholds with 2-of-5 persistence.
+- `smd_per_machine_threshold_gpu.csv`: selected-machine joint sweep of per-machine validation thresholds with 2-of-5 persistence.
 - `summary.csv`: hand-curated headline comparison table.
 
 ## Current Takeaways
@@ -86,11 +87,20 @@ q98.5 threshold was better but still below q99 persistence: full q98.5 reached F
 precision `0.1276`, and recall `0.3974`. Global q99 plus 2-of-5 persistence remains the best
 full-SMD joint setting so far at F1 `0.2409`.
 
+Per-machine validation thresholds are a promising but moderate selected-machine improvement. On the
+same selected machines and seed, per-machine q98 thresholds with 2-of-5 persistence improved F1 from
+the global q99 reference `0.2400` to `0.2749`, raising recall from `0.1752` to `0.3550` while
+precision fell from `0.3811` to `0.2243`. This suggests machine-specific calibration can recover
+missed events, but the signal should be checked on all 28 machines before treating it as a benchmark
+gain.
+
 ## Metric Notes
 
 - `anomaly.threshold_strategy=max_validation_f1` is the original protocol.
 - `validation_quantile_*` strategies select validation-score quantiles using validation data only;
   the test score distribution is not used for threshold selection.
+- `per_machine_validation_quantile_*` strategies select one validation-score threshold per machine
+  using validation groups only, then apply those frozen machine thresholds to the test split.
 - `channel_max_nll` computes marginal per-channel NLL and uses the largest channel score.
 - `regime_entropy`, `regime_confidence_gap`, and `regime_switch` are joint-only scoring methods
   derived from the regime posterior.
