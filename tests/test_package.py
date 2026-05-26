@@ -33,6 +33,7 @@ def test_project_scripts_include_smd_entrypoints() -> None:
     assert scripts["aaf-smd-mdn"] == "aaf.pipelines.smd_mdn:main"
     assert scripts["aaf-compare-runs"] == "aaf.experiments.cli:main"
     assert scripts["aaf-run-suite"] == "aaf.experiments.suite_cli:main"
+    assert scripts["aaf-rescore-anomaly"] == "aaf.eval.rescore_cli:main"
 
 
 def test_experiments_package_exports_collector() -> None:

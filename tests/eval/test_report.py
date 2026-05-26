@@ -192,6 +192,42 @@ def test_evaluate_run_directory_uses_artifact_groups_for_per_machine_thresholds(
     assert report.anomaly.test.f1 == pytest.approx(1.0)
 
 
+def test_evaluate_run_directory_can_skip_expensive_artifact_groups(tmp_path) -> None:
+    np.savez(
+        tmp_path / "forecast.npz",
+        observed=np.array([[0.0]]),
+        weights=np.array([[1.0]]),
+        means=np.array([[[0.0]]]),
+        stds=np.array([[[1.0]]]),
+    )
+    np.savez(
+        tmp_path / "anomaly_validation.npz",
+        scores=np.array([0.1, 0.2, 0.3]),
+        labels=np.array([0, 0, 0]),
+    )
+    np.savez(
+        tmp_path / "anomaly_test.npz",
+        scores=np.array([0.1, 0.35, 0.45]),
+        labels=np.array([0, 1, 1]),
+    )
+    np.savez(
+        tmp_path / "regime.npz",
+        true_labels=np.array([0, 0, 1, 1]),
+        pred_labels=np.array([1, 1, 0, 0]),
+    )
+
+    report = evaluate_run_directory(
+        tmp_path,
+        threshold_strategy="validation_quantile_95",
+        include_forecast=False,
+        include_regime=False,
+    )
+
+    assert report.forecast is None
+    assert report.anomaly is not None
+    assert report.regime is None
+
+
 def test_cli_writes_default_metrics_path(tmp_path) -> None:
     np.savez(
         tmp_path / "forecast.npz",
@@ -232,3 +268,44 @@ def test_cli_writes_default_metrics_path(tmp_path) -> None:
     assert saved["anomaly"]["threshold_strategy"] == "validation_quantile_95"
     assert saved["anomaly"]["persistence_window"] == 2
     assert saved["anomaly"]["persistence_count"] == 1
+
+
+def test_cli_can_skip_forecast_and_regime_metrics(tmp_path) -> None:
+    np.savez(
+        tmp_path / "forecast.npz",
+        observed=np.array([[0.0]]),
+        weights=np.array([[1.0]]),
+        means=np.array([[[0.0]]]),
+        stds=np.array([[[1.0]]]),
+    )
+    np.savez(
+        tmp_path / "anomaly_validation.npz",
+        scores=np.array([0.1, 0.2, 0.3]),
+        labels=np.array([0, 0, 0]),
+    )
+    np.savez(
+        tmp_path / "anomaly_test.npz",
+        scores=np.array([0.1, 0.35, 0.45]),
+        labels=np.array([0, 1, 1]),
+    )
+    np.savez(
+        tmp_path / "regime.npz",
+        true_labels=np.array([0, 0]),
+        pred_labels=np.array([0, 0]),
+    )
+
+    exit_code = main(
+        [
+            str(tmp_path),
+            "--threshold-strategy",
+            "validation_quantile_95",
+            "--skip-forecast",
+            "--skip-regime",
+        ]
+    )
+
+    assert exit_code == 0
+    saved = json.loads((tmp_path / "metrics.json").read_text(encoding="utf-8"))
+    assert saved["forecast"] is None
+    assert saved["anomaly"]["threshold_strategy"] == "validation_quantile_95"
+    assert saved["regime"] is None

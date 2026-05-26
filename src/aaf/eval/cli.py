@@ -42,6 +42,21 @@ def build_parser() -> argparse.ArgumentParser:
         default=1,
         help="Minimum positives in the trailing persistence window.",
     )
+    parser.add_argument(
+        "--skip-forecast",
+        action="store_true",
+        help="Skip forecast metrics even if forecast artifacts are present.",
+    )
+    parser.add_argument(
+        "--skip-anomaly",
+        action="store_true",
+        help="Skip anomaly metrics even if anomaly artifacts are present.",
+    )
+    parser.add_argument(
+        "--skip-regime",
+        action="store_true",
+        help="Skip regime metrics even if regime artifacts are present.",
+    )
     return parser
 
 
@@ -57,6 +72,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         threshold_strategy=args.threshold_strategy,
         persistence_window=args.persistence_window,
         persistence_count=args.persistence_count,
+        include_forecast=not args.skip_forecast,
+        include_anomaly=not args.skip_anomaly,
+        include_regime=not args.skip_regime,
     )
     return 0
 

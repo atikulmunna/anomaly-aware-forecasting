@@ -221,6 +221,9 @@ def evaluate_run_directory(
     threshold_strategy: str = "max_validation_f1",
     persistence_window: int = 1,
     persistence_count: int = 1,
+    include_forecast: bool = True,
+    include_anomaly: bool = True,
+    include_regime: bool = True,
 ) -> EvaluationReport:
     """Evaluate any supported artifacts found in a run directory.
 
@@ -233,7 +236,7 @@ def evaluate_run_directory(
 
     forecast_report = None
     forecast_path = run_dir / "forecast.npz"
-    if forecast_path.exists():
+    if include_forecast and forecast_path.exists():
         with np.load(forecast_path) as data:
             forecast_report = evaluate_forecast(
                 np.asarray(data["observed"]),
@@ -245,7 +248,7 @@ def evaluate_run_directory(
     anomaly_report = None
     anomaly_validation_path = run_dir / "anomaly_validation.npz"
     anomaly_test_path = run_dir / "anomaly_test.npz"
-    if anomaly_validation_path.exists() and anomaly_test_path.exists():
+    if include_anomaly and anomaly_validation_path.exists() and anomaly_test_path.exists():
         with np.load(anomaly_validation_path) as validation_data:
             validation_scores = np.asarray(validation_data["scores"])
             validation_labels = np.asarray(validation_data["labels"])
@@ -270,7 +273,7 @@ def evaluate_run_directory(
 
     regime_report = None
     regime_path = run_dir / "regime.npz"
-    if regime_path.exists():
+    if include_regime and regime_path.exists():
         with np.load(regime_path) as data:
             regime_report = evaluate_regime(
                 np.asarray(data["true_labels"]),
