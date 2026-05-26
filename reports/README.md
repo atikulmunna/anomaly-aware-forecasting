@@ -18,6 +18,7 @@ Raw datasets and full run artifacts are intentionally local-only.
 - `smd_mdn_full_tuned_gpu.csv`: full 28-machine run of the selected-machine MDN tuning winner.
 - `smd_joint_tune_gpu.csv`: selected-machine calibrated joint hyperparameter sweep.
 - `smd_mdn_tune_gpu.csv`: selected-machine calibrated MDN-LSTM hyperparameter sweep.
+- `smd_joint_regime_score_gpu.csv`: selected-machine joint scoring sweep using regime posteriors.
 - `summary.csv`: hand-curated headline comparison table.
 
 ## Current Takeaways
@@ -49,11 +50,18 @@ When the selected-machine MDN winner was rerun on all 28 SMD machines, performan
 (`hidden_size=64`) remains stronger at F1 `0.2310`, so selected-machine tuning is not sufficient
 evidence for full-benchmark improvement.
 
+Regime-only joint anomaly scores are currently weak on selected SMD machines. Channel-max forecast
+NLL reached F1 `0.2116` in the regime-score sweep, while regime entropy and regime switch scores
+were near F1 `0.10`. This indicates the unsupervised regime posterior is not yet a reliable
+standalone anomaly score on SMD.
+
 ## Metric Notes
 
 - `anomaly.threshold_strategy=max_validation_f1` is the original protocol.
 - `validation_quantile_99` selects the 99th percentile of validation scores using validation data
   only; the test score distribution is not used for threshold selection.
 - `channel_max_nll` computes marginal per-channel NLL and uses the largest channel score.
+- `regime_entropy`, `regime_confidence_gap`, and `regime_switch` are joint-only scoring methods
+  derived from the regime posterior.
 - Full-scale reports use capped threshold sweeps and a 128-point interval-coverage grid to keep
   evaluation tractable on all 28 SMD machines.
