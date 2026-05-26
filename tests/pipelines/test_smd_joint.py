@@ -74,6 +74,11 @@ def test_smd_joint_config_rejects_unknown_threshold_strategy(tmp_path) -> None:
         SMDJointConfig(root=tmp_path, threshold_strategy="unknown").validate()
 
 
+def test_smd_joint_config_requires_pseudo_labels_for_supervised_regime_loss(tmp_path) -> None:
+    with pytest.raises(ValueError, match="pseudo_regime_method"):
+        SMDJointConfig(root=tmp_path, supervised_regime_weight=0.1).validate()
+
+
 def test_build_smd_joint_datasets_returns_windowed_splits(tmp_path) -> None:
     write_smd_fixture(tmp_path)
 
@@ -83,6 +88,51 @@ def test_build_smd_joint_datasets_returns_windowed_splits(tmp_path) -> None:
     assert len(validation) > 0
     assert len(test) > 0
     assert len(standardizers) == 1
+
+
+def test_build_smd_joint_datasets_can_assign_pseudo_regime_labels(tmp_path) -> None:
+    write_smd_fixture(tmp_path)
+    (tmp_path / "train" / "machine-1-1.txt").write_text(
+        "\n".join(
+            [
+                "0,0",
+                "0,1",
+                "1,0",
+                "1,1",
+                "10,10",
+                "10,11",
+                "11,10",
+                "11,11",
+                "12,12",
+                "12,13",
+                "13,12",
+                "13,13",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    config = SMDJointConfig(
+        root=tmp_path,
+        validation_fraction=0.25,
+        lookback=2,
+        horizon=1,
+        stride=1,
+        n_regimes=2,
+        hidden_size=6,
+        n_components=2,
+        epochs=1,
+        batch_size=4,
+        learning_rate=0.01,
+        supervised_regime_weight=0.1,
+        pseudo_regime_method="window_kmeans",
+        energy_samples=16,
+    )
+
+    train, validation, test, _standardizers = build_smd_joint_datasets(config)
+
+    assert set(train.regime_labels.tolist()).issubset({0, 1})
+    assert set(validation.regime_labels.tolist()).issubset({0, 1})
+    assert set(test.regime_labels.tolist()).issubset({0, 1})
 
 
 def test_smd_joint_config_helpers_match_dataset_dimensions(tmp_path) -> None:

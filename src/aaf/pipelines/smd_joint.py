@@ -13,6 +13,7 @@ import numpy as np
 import torch
 
 from aaf.data.preprocessing import Standardizer, WindowedDataset
+from aaf.data.pseudo_regimes import assign_pseudo_regime_labels
 from aaf.data.smd import prepare_smd_windowed_datasets
 from aaf.data.synthetic import FloatArray
 from aaf.eval.anomaly import validate_threshold_strategy
@@ -48,6 +49,8 @@ class SMDJointConfig:
     learning_rate: float = 1e-3
     smoothness_weight: float = 0.1
     supervised_regime_weight: float = 0.0
+    pseudo_regime_method: str = "none"
+    pseudo_regime_max_iter: int = 50
     energy_samples: int = 128
     seed: int = 0
     device: str = "cpu"
@@ -81,6 +84,12 @@ class SMDJointConfig:
             raise ValueError("smoothness_weight must be non-negative")
         if self.supervised_regime_weight < 0.0:
             raise ValueError("supervised_regime_weight must be non-negative")
+        if self.pseudo_regime_method not in ("none", "window_kmeans"):
+            raise ValueError("pseudo_regime_method must be one of: none, window_kmeans")
+        if self.supervised_regime_weight > 0.0 and self.pseudo_regime_method == "none":
+            raise ValueError("supervised regime loss requires pseudo_regime_method")
+        if self.pseudo_regime_max_iter < 1:
+            raise ValueError("pseudo_regime_max_iter must be positive")
         if self.energy_samples < 2:
             raise ValueError("energy_samples must be at least 2")
         if not self.device:
@@ -95,7 +104,7 @@ def build_smd_joint_datasets(
     """Build SMD windowed datasets for joint model training."""
 
     config.validate()
-    return prepare_smd_windowed_datasets(
+    train, validation, test, standardizers = prepare_smd_windowed_datasets(
         config.root,
         machine_ids=config.machine_ids,
         validation_fraction=config.validation_fraction,
@@ -103,6 +112,16 @@ def build_smd_joint_datasets(
         horizon=config.horizon,
         stride=config.stride,
     )
+    if config.pseudo_regime_method == "window_kmeans":
+        train, validation, test, _model = assign_pseudo_regime_labels(
+            train,
+            validation,
+            test,
+            n_regimes=config.n_regimes,
+            seed=config.seed,
+            max_iter=config.pseudo_regime_max_iter,
+        )
+    return train, validation, test, standardizers
 
 
 def run_smd_joint(
@@ -182,6 +201,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--learning-rate", type=float, default=1e-3)
     parser.add_argument("--smoothness-weight", type=float, default=0.1)
     parser.add_argument("--supervised-regime-weight", type=float, default=0.0)
+    parser.add_argument("--pseudo-regime-method", default="none")
+    parser.add_argument("--pseudo-regime-max-iter", type=int, default=50)
     parser.add_argument("--energy-samples", type=int, default=128)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--device", default="cpu")
@@ -210,6 +231,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             learning_rate=args.learning_rate,
             smoothness_weight=args.smoothness_weight,
             supervised_regime_weight=args.supervised_regime_weight,
+            pseudo_regime_method=args.pseudo_regime_method,
+            pseudo_regime_max_iter=args.pseudo_regime_max_iter,
             energy_samples=args.energy_samples,
             seed=args.seed,
             device=args.device,
