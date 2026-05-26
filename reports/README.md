@@ -16,6 +16,7 @@ Raw datasets and full run artifacts are intentionally local-only.
 - `smd_threshold_gpu.csv`: selected-machine comparison of threshold strategies.
 - `smd_full_calibrated_gpu.csv`: full 28-machine calibrated joint and MDN runs.
 - `smd_joint_tune_gpu.csv`: selected-machine calibrated joint hyperparameter sweep.
+- `smd_mdn_tune_gpu.csv`: selected-machine calibrated MDN-LSTM hyperparameter sweep.
 - `summary.csv`: hand-curated headline comparison table.
 
 ## Current Takeaways
@@ -37,6 +38,10 @@ anomaly labels.
 
 The first selected-machine joint tuning sweep did not show a gain from increasing regimes or hidden
 size. The calibrated baseline, no-smoothness, and high-smoothness variants tied at F1 `0.2608`.
+
+The selected-machine MDN-LSTM tuning sweep favored the smaller `hidden_size=32` model with F1
+`0.2756`, precision `0.3282`, recall `0.2375`, ROC-AUC `0.8333`, and VUS-ROC `0.7496`.
+More mixture components and larger hidden size did not improve range F1 in this pass.
 
 ## Metric Notes
 
