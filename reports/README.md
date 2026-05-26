@@ -15,6 +15,7 @@ Raw datasets and full run artifacts are intentionally local-only.
 - `smd_score_gpu.csv`: selected-machine comparison of anomaly score aggregations.
 - `smd_threshold_gpu.csv`: selected-machine comparison of threshold strategies.
 - `smd_full_calibrated_gpu.csv`: full 28-machine calibrated joint and MDN runs.
+- `smd_mdn_full_tuned_gpu.csv`: full 28-machine run of the selected-machine MDN tuning winner.
 - `smd_joint_tune_gpu.csv`: selected-machine calibrated joint hyperparameter sweep.
 - `smd_mdn_tune_gpu.csv`: selected-machine calibrated MDN-LSTM hyperparameter sweep.
 - `summary.csv`: hand-curated headline comparison table.
@@ -42,6 +43,11 @@ size. The calibrated baseline, no-smoothness, and high-smoothness variants tied 
 The selected-machine MDN-LSTM tuning sweep favored the smaller `hidden_size=32` model with F1
 `0.2756`, precision `0.3282`, recall `0.2375`, ROC-AUC `0.8333`, and VUS-ROC `0.7496`.
 More mixture components and larger hidden size did not improve range F1 in this pass.
+
+When the selected-machine MDN winner was rerun on all 28 SMD machines, performance dropped to F1
+`0.2025` with precision `0.1271` and recall `0.4981`. The previous full calibrated MDN-LSTM
+(`hidden_size=64`) remains stronger at F1 `0.2310`, so selected-machine tuning is not sufficient
+evidence for full-benchmark improvement.
 
 ## Metric Notes
 
