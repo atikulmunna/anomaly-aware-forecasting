@@ -1,0 +1,35 @@
+{
+  "name": "smd-joint-full-per-machine-threshold-gpu",
+  "jobs": [
+    {
+      "run_id": "smd-joint-full-machine-threshold-q98-w5-c2-gpu",
+      "pipeline": "smd-joint",
+      "dataset": "smd",
+      "notes": "GPU SMD joint benchmark over all 28 machines with per-machine q98 validation thresholds and 2-of-5 persistence filtering",
+      "params": {
+        "root": "datasets/SMD",
+        "machine_ids": null,
+        "validation_fraction": 0.2,
+        "lookback": 100,
+        "horizon": 1,
+        "stride": 4,
+        "n_regimes": 3,
+        "hidden_size": 64,
+        "num_layers": 1,
+        "n_components": 3,
+        "epochs": 5,
+        "batch_size": 128,
+        "learning_rate": 0.001,
+        "smoothness_weight": 0.1,
+        "supervised_regime_weight": 0.0,
+        "energy_samples": 32,
+        "seed": 402,
+        "device": "cuda",
+        "anomaly_score_method": "channel_max_nll",
+        "threshold_strategy": "per_machine_validation_quantile_98",
+        "anomaly_persistence_window": 5,
+        "anomaly_persistence_count": 2
+      }
+    }
+  ]
+}
