@@ -82,6 +82,33 @@ def test_evaluate_anomaly_applies_persistence_filter_after_threshold_selection()
     assert report.test.recall == pytest.approx(1.0)
 
 
+def test_evaluate_anomaly_supports_per_machine_quantile_thresholds() -> None:
+    report = evaluate_anomaly(
+        np.array([0.0, 1.0, 10.0, 20.0]),
+        np.array([0, 0, 0, 0]),
+        np.array([1.0, 0.4, 20.0, 14.0]),
+        np.array([1, 0, 1, 0]),
+        threshold_strategy="per_machine_validation_quantile_98",
+        validation_groups=np.array([0, 0, 1, 1]),
+        test_groups=np.array([0, 0, 1, 1]),
+    )
+
+    assert report.threshold_strategy == "per_machine_validation_quantile_98"
+    assert report.threshold == pytest.approx({0: 0.98, 1: 19.8})
+    assert report.test.f1 == pytest.approx(1.0)
+
+
+def test_evaluate_anomaly_requires_groups_for_per_machine_strategy() -> None:
+    with pytest.raises(ValueError, match="group labels"):
+        evaluate_anomaly(
+            np.array([0.0, 1.0]),
+            np.array([0, 0]),
+            np.array([0.5, 1.5]),
+            np.array([0, 1]),
+            threshold_strategy="per_machine_validation_quantile_99",
+        )
+
+
 def test_evaluate_regime_aligns_permuted_labels() -> None:
     true = np.array([0, 0, 1, 1])
     pred = np.array([1, 1, 0, 0])
@@ -105,11 +132,13 @@ def test_evaluate_run_directory_writes_metrics_json(tmp_path) -> None:
         tmp_path / "anomaly_validation.npz",
         scores=np.array([0.1, 0.8, 0.7, 0.2]),
         labels=np.array([0, 1, 1, 0]),
+        groups=np.array([0, 0, 1, 1]),
     )
     np.savez(
         tmp_path / "anomaly_test.npz",
         scores=np.array([0.9, 0.1, 0.7, 0.3]),
         labels=np.array([1, 0, 1, 0]),
+        groups=np.array([0, 0, 1, 1]),
     )
     np.savez(
         tmp_path / "regime.npz",
@@ -138,6 +167,29 @@ def test_evaluate_run_directory_writes_metrics_json(tmp_path) -> None:
     assert saved["anomaly"]["threshold_free"]["vus_pr"] == pytest.approx(1.0)
     assert saved["anomaly"]["threshold_free"]["vus_roc"] == pytest.approx(1.0)
     assert saved["regime"]["adjusted_rand_index"] == pytest.approx(1.0)
+
+
+def test_evaluate_run_directory_uses_artifact_groups_for_per_machine_thresholds(tmp_path) -> None:
+    np.savez(
+        tmp_path / "anomaly_validation.npz",
+        scores=np.array([0.0, 1.0, 10.0, 20.0]),
+        labels=np.array([0, 0, 0, 0]),
+        groups=np.array([0, 0, 1, 1]),
+    )
+    np.savez(
+        tmp_path / "anomaly_test.npz",
+        scores=np.array([1.0, 0.4, 20.0, 14.0]),
+        labels=np.array([1, 0, 1, 0]),
+        groups=np.array([0, 0, 1, 1]),
+    )
+
+    report = evaluate_run_directory(
+        tmp_path,
+        threshold_strategy="per_machine_validation_quantile_98",
+    )
+
+    assert report.anomaly is not None
+    assert report.anomaly.test.f1 == pytest.approx(1.0)
 
 
 def test_cli_writes_default_metrics_path(tmp_path) -> None:

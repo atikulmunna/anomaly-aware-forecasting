@@ -6,6 +6,7 @@ import pytest
 from aaf.eval.anomaly import (
     _MAX_THRESHOLD_CANDIDATES,
     Range,
+    apply_grouped_persistence_filter,
     apply_persistence_filter,
     average_precision_score,
     binary_confusion,
@@ -21,9 +22,11 @@ from aaf.eval.anomaly import (
     select_threshold_by_quantile,
     select_threshold_by_range_f1,
     select_threshold_by_target_recall,
+    select_thresholds_by_group_quantile,
     threshold_candidates,
     threshold_free_metrics,
     threshold_scores,
+    threshold_scores_by_group,
     trapezoidal_area,
     validate_persistence,
     vus_pr_score,
@@ -78,6 +81,15 @@ def test_apply_persistence_filter_default_preserves_predictions() -> None:
     filtered = apply_persistence_filter(predictions)
 
     assert filtered.tolist() == [False, True, False, True]
+
+
+def test_apply_grouped_persistence_filter_resets_at_group_boundaries() -> None:
+    predictions = np.array([1, 0, 1, 1])
+    groups = np.array([0, 0, 1, 1])
+
+    filtered = apply_grouped_persistence_filter(predictions, groups, window=2, count=2)
+
+    assert filtered.tolist() == [False, False, False, True]
 
 
 def test_validate_persistence_rejects_count_larger_than_window() -> None:
@@ -259,6 +271,30 @@ def test_select_threshold_by_quantile_uses_validation_distribution() -> None:
     assert metrics.f1 == pytest.approx(0.0)
 
 
+def test_select_thresholds_by_group_quantile_uses_group_distributions() -> None:
+    scores = np.array([0.0, 1.0, 10.0, 20.0])
+    labels = np.array([0, 0, 0, 0])
+    groups = np.array([0, 0, 1, 1])
+
+    thresholds, _metrics = select_thresholds_by_group_quantile(
+        scores,
+        labels,
+        groups,
+        quantile=0.5,
+    )
+
+    assert thresholds == pytest.approx({0: 0.5, 1: 15.0})
+
+
+def test_threshold_scores_by_group_requires_threshold_for_each_group() -> None:
+    with pytest.raises(ValueError, match="missing threshold"):
+        threshold_scores_by_group(
+            np.array([0.0, 1.0]),
+            np.array([0, 1]),
+            {0: 0.5},
+        )
+
+
 def test_select_threshold_by_target_recall_prefers_precision_after_target() -> None:
     scores = np.array([0.1, 0.9, 0.8, 0.2])
     labels = np.array([0, 1, 1, 0])
@@ -299,6 +335,15 @@ def test_select_threshold_dispatches_strategy() -> None:
     )
 
     assert threshold == pytest.approx(2.85)
+
+
+def test_select_threshold_rejects_per_machine_strategy_without_groups() -> None:
+    with pytest.raises(ValueError, match="group labels"):
+        select_threshold(
+            np.array([0.0, 1.0]),
+            np.array([0, 0]),
+            strategy="per_machine_validation_quantile_99",
+        )
 
 
 @pytest.mark.parametrize(

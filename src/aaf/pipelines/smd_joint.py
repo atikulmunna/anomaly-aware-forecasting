@@ -14,8 +14,8 @@ import torch
 
 from aaf.data.preprocessing import Standardizer, WindowedDataset
 from aaf.data.pseudo_regimes import assign_pseudo_regime_labels
-from aaf.data.smd import prepare_smd_windowed_datasets
-from aaf.data.synthetic import FloatArray
+from aaf.data.smd import prepare_smd_windowed_datasets_with_machine_ids
+from aaf.data.synthetic import FloatArray, IntArray
 from aaf.eval.anomaly import validate_persistence, validate_threshold_strategy
 from aaf.eval.anomaly_scores import joint_anomaly_scores, validate_joint_anomaly_score_method
 from aaf.eval.artifacts import write_mixture_diagnostics_json, write_regime_diagnostics_json
@@ -109,8 +109,35 @@ def build_smd_joint_datasets(
 ) -> tuple[WindowedDataset, WindowedDataset, WindowedDataset, tuple[Standardizer, ...]]:
     """Build SMD windowed datasets for joint model training."""
 
+    train, validation, test, standardizers, _train_groups, _validation_groups, _test_groups = (
+        build_smd_joint_datasets_with_machine_ids(config)
+    )
+    return train, validation, test, standardizers
+
+
+def build_smd_joint_datasets_with_machine_ids(
+    config: SMDJointConfig,
+) -> tuple[
+    WindowedDataset,
+    WindowedDataset,
+    WindowedDataset,
+    tuple[Standardizer, ...],
+    IntArray,
+    IntArray,
+    IntArray,
+]:
+    """Build SMD datasets plus integer machine ids for each window."""
+
     config.validate()
-    train, validation, test, standardizers = prepare_smd_windowed_datasets(
+    (
+        train,
+        validation,
+        test,
+        standardizers,
+        train_groups,
+        validation_groups,
+        test_groups,
+    ) = prepare_smd_windowed_datasets_with_machine_ids(
         config.root,
         machine_ids=config.machine_ids,
         validation_fraction=config.validation_fraction,
@@ -127,7 +154,7 @@ def build_smd_joint_datasets(
             seed=config.seed,
             max_iter=config.pseudo_regime_max_iter,
         )
-    return train, validation, test, standardizers
+    return train, validation, test, standardizers, train_groups, validation_groups, test_groups
 
 
 def run_smd_joint(
@@ -142,7 +169,15 @@ def run_smd_joint(
     if output_dir.exists() and any(output_dir.iterdir()) and not overwrite:
         raise FileExistsError(f"output directory is not empty: {output_dir}")
     output_dir.mkdir(parents=True, exist_ok=True)
-    train, validation, test, standardizers = build_smd_joint_datasets(config)
+    (
+        train,
+        validation,
+        test,
+        standardizers,
+        _train_groups,
+        validation_groups,
+        test_groups,
+    ) = build_smd_joint_datasets_with_machine_ids(config)
     model_config = smd_joint_model_config(train, config)
     result = train_smd_joint_model(train, validation, config)
     validation_prediction, test_prediction = predict_smd_joint_splits(
@@ -164,12 +199,14 @@ def run_smd_joint(
         validation,
         validation_prediction,
         method=config.anomaly_score_method,
+        group_labels=validation_groups,
     )
     write_smd_joint_anomaly_artifact(
         output_dir / "anomaly_test.npz",
         test,
         test_prediction,
         method=config.anomaly_score_method,
+        group_labels=test_groups,
     )
     write_smd_joint_regime_artifact(output_dir / "regime.npz", test, test_prediction)
     write_mixture_diagnostics_json(
@@ -347,6 +384,7 @@ def write_smd_joint_anomaly_artifact(
     prediction: JointPrediction,
     *,
     method: str = "mean_nll",
+    group_labels: IntArray | None = None,
 ) -> None:
     """Write joint SMD anomaly scores from forecast likelihoods or regime posteriors."""
 
@@ -356,7 +394,15 @@ def write_smd_joint_anomaly_artifact(
         prediction.regime_probs,
         method=method,
     )
-    np.savez(path, scores=scores, labels=dataset.anomaly_labels)
+    payload: dict[str, Any] = {
+        "scores": scores,
+        "labels": dataset.anomaly_labels,
+    }
+    if group_labels is not None:
+        if group_labels.shape != dataset.anomaly_labels.shape:
+            raise ValueError("group_labels must match dataset length")
+        payload["groups"] = group_labels
+    np.savez(path, **payload)
 
 
 def write_smd_joint_regime_artifact(

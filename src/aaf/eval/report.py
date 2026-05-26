@@ -11,16 +11,20 @@ import numpy as np
 from numpy.typing import NDArray
 
 from aaf.eval.anomaly import (
+    PER_MACHINE_QUANTILE_THRESHOLD_STRATEGIES,
     DetectionDelay,
     RangeMetrics,
     ThresholdFreeMetrics,
+    apply_grouped_persistence_filter,
     apply_persistence_filter,
     detection_delay,
     false_alarm_rate_per_1000,
     range_precision_recall,
     select_threshold,
+    select_thresholds_by_group_quantile,
     threshold_free_metrics,
     threshold_scores,
+    threshold_scores_by_group,
     validate_persistence,
     validate_threshold_strategy,
 )
@@ -58,7 +62,7 @@ class ForecastReport:
 @dataclass(frozen=True)
 class AnomalyReport:
     threshold_strategy: str
-    threshold: float
+    threshold: float | dict[int, float]
     persistence_window: int
     persistence_count: int
     validation: RangeMetrics
@@ -121,31 +125,68 @@ def evaluate_anomaly(
     threshold_strategy: str = "max_validation_f1",
     persistence_window: int = 1,
     persistence_count: int = 1,
+    validation_groups: IntArray | None = None,
+    test_groups: IntArray | None = None,
 ) -> AnomalyReport:
     """Select an anomaly threshold on validation data and evaluate on test data."""
 
     validate_threshold_strategy(threshold_strategy)
     validate_persistence(window=persistence_window, count=persistence_count)
-    threshold, validation_metrics = select_threshold(
+    if threshold_strategy in PER_MACHINE_QUANTILE_THRESHOLD_STRATEGIES:
+        if validation_groups is None or test_groups is None:
+            raise ValueError("per-machine threshold strategy requires group labels")
+        threshold, validation_metrics = select_thresholds_by_group_quantile(
+            validation_scores,
+            validation_labels,
+            validation_groups,
+            quantile=PER_MACHINE_QUANTILE_THRESHOLD_STRATEGIES[threshold_strategy],
+        )
+        validation_predictions = apply_grouped_persistence_filter(
+            threshold_scores_by_group(validation_scores, validation_groups, threshold),
+            validation_groups,
+            window=persistence_window,
+            count=persistence_count,
+        )
+        validation_metrics = range_precision_recall(validation_labels, validation_predictions)
+        test_predictions = apply_grouped_persistence_filter(
+            threshold_scores_by_group(test_scores, test_groups, threshold),
+            test_groups,
+            window=persistence_window,
+            count=persistence_count,
+        )
+        test_metrics = range_precision_recall(test_labels, test_predictions)
+        return AnomalyReport(
+            threshold_strategy=threshold_strategy,
+            threshold=threshold,
+            persistence_window=persistence_window,
+            persistence_count=persistence_count,
+            validation=validation_metrics,
+            test=test_metrics,
+            threshold_free=threshold_free_metrics(test_scores, test_labels),
+            detection_delay=detection_delay(test_labels, test_predictions),
+            false_alarm_rate_per_1000=false_alarm_rate_per_1000(test_labels, test_predictions),
+        )
+
+    global_threshold, validation_metrics = select_threshold(
         validation_scores,
         validation_labels,
         strategy=threshold_strategy,
     )
     validation_predictions = apply_persistence_filter(
-        threshold_scores(validation_scores, threshold),
+        threshold_scores(validation_scores, global_threshold),
         window=persistence_window,
         count=persistence_count,
     )
     validation_metrics = range_precision_recall(validation_labels, validation_predictions)
     test_predictions = apply_persistence_filter(
-        threshold_scores(test_scores, threshold),
+        threshold_scores(test_scores, global_threshold),
         window=persistence_window,
         count=persistence_count,
     )
     test_metrics = range_precision_recall(test_labels, test_predictions)
     return AnomalyReport(
         threshold_strategy=threshold_strategy,
-        threshold=threshold,
+        threshold=global_threshold,
         persistence_window=persistence_window,
         persistence_count=persistence_count,
         validation=validation_metrics,
@@ -208,9 +249,13 @@ def evaluate_run_directory(
         with np.load(anomaly_validation_path) as validation_data:
             validation_scores = np.asarray(validation_data["scores"])
             validation_labels = np.asarray(validation_data["labels"])
+            validation_groups = (
+                np.asarray(validation_data["groups"]) if "groups" in validation_data else None
+            )
         with np.load(anomaly_test_path) as test_data:
             test_scores = np.asarray(test_data["scores"])
             test_labels = np.asarray(test_data["labels"])
+            test_groups = np.asarray(test_data["groups"]) if "groups" in test_data else None
         anomaly_report = evaluate_anomaly(
             validation_scores,
             validation_labels,
@@ -219,6 +264,8 @@ def evaluate_run_directory(
             threshold_strategy=threshold_strategy,
             persistence_window=persistence_window,
             persistence_count=persistence_count,
+            validation_groups=validation_groups,
+            test_groups=test_groups,
         )
 
     regime_report = None

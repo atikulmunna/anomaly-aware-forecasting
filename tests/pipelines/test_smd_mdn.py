@@ -153,12 +153,14 @@ def test_smd_mdn_artifact_writers_emit_npz_files(tmp_path) -> None:
         test,
         test_forecast,
         method="channel_max_nll",
+        group_labels=np.zeros(test.anomaly_labels.shape, dtype=np.int64),
     )
 
     with np.load(tmp_path / "forecast.npz") as artifact:
         assert artifact["weights"].shape[0] == len(test)
     with np.load(tmp_path / "anomaly.npz") as artifact:
         assert artifact["scores"].shape == test.anomaly_labels.shape
+        assert artifact["groups"].shape == test.anomaly_labels.shape
     assert (tmp_path / "anomaly.npz").exists()
 
 

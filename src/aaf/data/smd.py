@@ -264,6 +264,66 @@ def prepare_smd_windowed_datasets(
     )
 
 
+def prepare_smd_windowed_datasets_with_machine_ids(
+    root: Path,
+    *,
+    machine_ids: tuple[str, ...] | None = None,
+    validation_fraction: float = 0.2,
+    lookback: int,
+    horizon: int,
+    stride: int = 1,
+) -> tuple[
+    WindowedDataset,
+    WindowedDataset,
+    WindowedDataset,
+    tuple[Standardizer, ...],
+    IntArray,
+    IntArray,
+    IntArray,
+]:
+    """Load SMD windowed datasets and integer machine ids for each window."""
+
+    splits = load_smd_machines(root, machine_ids)
+    prepared = tuple(
+        prepare_smd_machine(split, validation_fraction=validation_fraction) for split in splits
+    )
+    windowed = tuple(
+        make_smd_windowed_splits(
+            machine,
+            lookback=lookback,
+            horizon=horizon,
+            stride=stride,
+        )
+        for machine, _standardizer in prepared
+    )
+    train_splits = tuple(item[0] for item in windowed)
+    validation_splits = tuple(item[1] for item in windowed)
+    test_splits = tuple(item[2] for item in windowed)
+    return (
+        concat_windowed_datasets(train_splits),
+        concat_windowed_datasets(validation_splits),
+        concat_windowed_datasets(test_splits),
+        tuple(standardizer for _machine, standardizer in prepared),
+        concat_machine_id_arrays(train_splits),
+        concat_machine_id_arrays(validation_splits),
+        concat_machine_id_arrays(test_splits),
+    )
+
+
+def concat_machine_id_arrays(datasets: tuple[WindowedDataset, ...]) -> IntArray:
+    """Return one integer machine id per window for concatenated SMD splits."""
+
+    if len(datasets) == 0:
+        raise ValueError("at least one windowed dataset is required")
+    return np.concatenate(
+        [
+            np.full(len(dataset), machine_index, dtype=np.int64)
+            for machine_index, dataset in enumerate(datasets)
+        ],
+        axis=0,
+    )
+
+
 def _machine_ids(directory: Path) -> set[str]:
     return {path.stem for path in directory.iterdir() if path.is_file() and path.suffix == ".txt"}
 

@@ -21,6 +21,9 @@ ThresholdStrategy = Literal[
     "validation_quantile_993",
     "validation_quantile_995",
     "validation_quantile_997",
+    "per_machine_validation_quantile_98",
+    "per_machine_validation_quantile_985",
+    "per_machine_validation_quantile_99",
     "target_recall_50",
     "target_recall_70",
 ]
@@ -33,6 +36,11 @@ QUANTILE_THRESHOLD_STRATEGIES = {
     "validation_quantile_993": 0.993,
     "validation_quantile_995": 0.995,
     "validation_quantile_997": 0.997,
+}
+PER_MACHINE_QUANTILE_THRESHOLD_STRATEGIES = {
+    "per_machine_validation_quantile_98": 0.98,
+    "per_machine_validation_quantile_985": 0.985,
+    "per_machine_validation_quantile_99": 0.99,
 }
 
 
@@ -183,6 +191,29 @@ def apply_persistence_filter(
         start = max(0, index - window + 1)
         positive_count = cumulative[index + 1] - cumulative[start]
         filtered[index] = positive_count >= count
+    return filtered
+
+
+def apply_grouped_persistence_filter(
+    pred_labels: ArrayLike,
+    groups: ArrayLike,
+    *,
+    window: int = 1,
+    count: int = 1,
+) -> BoolArray:
+    """Apply persistence independently within each group."""
+
+    predictions = _binary_array(pred_labels, name="pred_labels")
+    group_array = _group_array(groups, expected_shape=predictions.shape)
+    validate_persistence(window=window, count=count)
+    filtered = np.zeros(predictions.shape, dtype=np.bool_)
+    for group in np.unique(group_array):
+        mask = group_array == group
+        filtered[mask] = apply_persistence_filter(
+            predictions[mask],
+            window=window,
+            count=count,
+        )
     return filtered
 
 
@@ -380,6 +411,8 @@ def select_threshold(
             true_labels,
             quantile=QUANTILE_THRESHOLD_STRATEGIES[strategy],
         )
+    if strategy in PER_MACHINE_QUANTILE_THRESHOLD_STRATEGIES:
+        raise ValueError("per-machine threshold selection requires group labels")
     if strategy == "target_recall_50":
         return select_threshold_by_target_recall(
             scores,
@@ -416,6 +449,61 @@ def select_threshold_by_quantile(
     threshold = float(np.quantile(score_array, quantile))
     metrics = range_precision_recall(true_labels, threshold_scores(score_array, threshold))
     return threshold, metrics
+
+
+def select_thresholds_by_group_quantile(
+    scores: ArrayLike,
+    true_labels: ArrayLike,
+    groups: ArrayLike,
+    *,
+    quantile: float,
+) -> tuple[dict[int, float], RangeMetrics]:
+    """Select validation quantile thresholds independently per group."""
+
+    if not 0.0 <= quantile <= 1.0:
+        raise ValueError("quantile must be in [0, 1]")
+    score_array = np.asarray(scores, dtype=np.float64)
+    labels = _binary_array(true_labels, name="true_labels")
+    group_array = _group_array(groups, expected_shape=labels.shape)
+    if score_array.ndim != 1:
+        raise ValueError("scores must be one-dimensional")
+    if score_array.shape != labels.shape:
+        raise ValueError("scores and true_labels must have the same shape")
+    if np.any(~np.isfinite(score_array)):
+        raise ValueError("scores must be finite")
+
+    thresholds: dict[int, float] = {}
+    predictions = np.zeros(labels.shape, dtype=np.bool_)
+    for group in np.unique(group_array):
+        group_id = int(group)
+        mask = group_array == group
+        threshold = float(np.quantile(score_array[mask], quantile))
+        thresholds[group_id] = threshold
+        predictions[mask] = threshold_scores(score_array[mask], threshold)
+    return thresholds, range_precision_recall(labels, predictions)
+
+
+def threshold_scores_by_group(
+    scores: ArrayLike,
+    groups: ArrayLike,
+    thresholds: dict[int, float],
+) -> BoolArray:
+    """Threshold scores with one threshold per group."""
+
+    score_array = np.asarray(scores, dtype=np.float64)
+    if score_array.ndim != 1:
+        raise ValueError("scores must be one-dimensional")
+    if np.any(~np.isfinite(score_array)):
+        raise ValueError("scores must be finite")
+    group_array = _group_array(groups, expected_shape=score_array.shape)
+    predictions = np.zeros(score_array.shape, dtype=np.bool_)
+    for group in np.unique(group_array):
+        group_id = int(group)
+        if group_id not in thresholds:
+            raise ValueError(f"missing threshold for group: {group_id}")
+        mask = group_array == group
+        predictions[mask] = threshold_scores(score_array[mask], thresholds[group_id])
+    return predictions
 
 
 def select_threshold_by_target_recall(
@@ -517,6 +605,17 @@ def _binary_array(values: ArrayLike, *, name: str) -> BoolArray:
     if not np.isin(array, [0, 1, False, True]).all():
         raise ValueError(f"{name} must contain only binary values")
     return np.asarray(array, dtype=np.bool_)
+
+
+def _group_array(values: ArrayLike, *, expected_shape: tuple[int, ...]) -> NDArray[np.int64]:
+    array = np.asarray(values, dtype=np.int64)
+    if array.shape != expected_shape:
+        raise ValueError("groups must have the same shape as scores and labels")
+    if array.ndim != 1:
+        raise ValueError("groups must be one-dimensional")
+    if array.shape[0] == 0:
+        raise ValueError("groups must be non-empty")
+    return array
 
 
 def _average_overlap_fraction(subject: list[Range], reference: list[Range]) -> float:

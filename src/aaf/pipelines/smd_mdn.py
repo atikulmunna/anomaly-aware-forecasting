@@ -13,8 +13,8 @@ import numpy as np
 import torch
 
 from aaf.data.preprocessing import Standardizer, WindowedDataset
-from aaf.data.smd import prepare_smd_windowed_datasets
-from aaf.data.synthetic import FloatArray
+from aaf.data.smd import prepare_smd_windowed_datasets_with_machine_ids
+from aaf.data.synthetic import FloatArray, IntArray
 from aaf.eval.anomaly import validate_persistence, validate_threshold_strategy
 from aaf.eval.anomaly_scores import forecast_anomaly_scores, validate_anomaly_score_method
 from aaf.eval.artifacts import write_mixture_diagnostics_json
@@ -84,8 +84,27 @@ def build_smd_mdn_datasets(
 ) -> tuple[WindowedDataset, WindowedDataset, WindowedDataset, tuple[Standardizer, ...]]:
     """Build SMD windowed datasets for non-regime MDN-LSTM training."""
 
+    train, validation, test, standardizers, _train_groups, _validation_groups, _test_groups = (
+        build_smd_mdn_datasets_with_machine_ids(config)
+    )
+    return train, validation, test, standardizers
+
+
+def build_smd_mdn_datasets_with_machine_ids(
+    config: SMDMDNConfig,
+) -> tuple[
+    WindowedDataset,
+    WindowedDataset,
+    WindowedDataset,
+    tuple[Standardizer, ...],
+    IntArray,
+    IntArray,
+    IntArray,
+]:
+    """Build SMD MDN datasets plus integer machine ids for each window."""
+
     config.validate()
-    return prepare_smd_windowed_datasets(
+    return prepare_smd_windowed_datasets_with_machine_ids(
         config.root,
         machine_ids=config.machine_ids,
         validation_fraction=config.validation_fraction,
@@ -108,7 +127,15 @@ def run_smd_mdn(
         raise FileExistsError(f"output directory is not empty: {output_dir}")
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    train, validation, test, standardizers = build_smd_mdn_datasets(config)
+    (
+        train,
+        validation,
+        test,
+        standardizers,
+        _train_groups,
+        validation_groups,
+        test_groups,
+    ) = build_smd_mdn_datasets_with_machine_ids(config)
     model_config = smd_mdn_model_config(train, config)
     result = train_smd_mdn_model(train, validation, config)
     validation_forecast, test_forecast = predict_smd_mdn_splits(
@@ -126,12 +153,14 @@ def run_smd_mdn(
         validation,
         validation_forecast,
         method=config.anomaly_score_method,
+        group_labels=validation_groups,
     )
     write_smd_mdn_anomaly_artifact(
         output_dir / "anomaly_test.npz",
         test,
         test_forecast,
         method=config.anomaly_score_method,
+        group_labels=test_groups,
     )
     np.savez(
         output_dir / "regime.npz",
@@ -286,11 +315,20 @@ def write_smd_mdn_anomaly_artifact(
     forecast: MixtureForecast,
     *,
     method: str = "mean_nll",
+    group_labels: IntArray | None = None,
 ) -> None:
     """Write SMD MDN-LSTM anomaly scores from forecast likelihoods."""
 
     scores = forecast_anomaly_scores(dataset.targets, forecast, method=method)
-    np.savez(path, scores=scores, labels=dataset.anomaly_labels)
+    payload: dict[str, Any] = {
+        "scores": scores,
+        "labels": dataset.anomaly_labels,
+    }
+    if group_labels is not None:
+        if group_labels.shape != dataset.anomaly_labels.shape:
+            raise ValueError("group_labels must match dataset length")
+        payload["groups"] = group_labels
+    np.savez(path, **payload)
 
 
 def _write_training_artifacts(

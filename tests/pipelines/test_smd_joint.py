@@ -219,6 +219,7 @@ def test_smd_joint_artifact_writers_emit_npz_files(tmp_path) -> None:
         test,
         test_prediction,
         method="channel_max_nll",
+        group_labels=np.zeros(test.anomaly_labels.shape, dtype=np.int64),
     )
     write_smd_joint_regime_artifact(tmp_path / "regime.npz", test, test_prediction)
 
@@ -226,6 +227,7 @@ def test_smd_joint_artifact_writers_emit_npz_files(tmp_path) -> None:
         assert artifact["posterior_probs"].shape == test.regime_labels.shape + (config.n_regimes,)
     with np.load(tmp_path / "anomaly.npz") as artifact:
         assert artifact["scores"].shape == test.anomaly_labels.shape
+        assert artifact["groups"].shape == test.anomaly_labels.shape
     assert (tmp_path / "forecast.npz").exists()
     assert (tmp_path / "anomaly.npz").exists()
 
