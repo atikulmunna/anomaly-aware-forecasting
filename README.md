@@ -44,23 +44,20 @@ This project emphasizes disciplined evaluation over leaderboard chasing:
 ## Current Results
 
 The strongest current full-SMD anomaly results use channel-max predictive NLL, validation-only
-threshold calibration, and 2-of-5 persistence filtering:
+threshold calibration, and 2-of-5 persistence filtering. The final three-seed robustness check is:
 
-| Model | Threshold | F1 | Precision | Recall | ROC-AUC | VUS-ROC |
-| --- | --- | ---: | ---: | ---: | ---: | ---: |
-| Non-regime MDN-LSTM | q99.6 | 0.2642 | 0.2423 | 0.2905 | 0.7254 | 0.7242 |
-| Joint regime-aware MDN-LSTM | q99.3 | 0.2628 | 0.2227 | 0.3204 | 0.7005 | 0.7097 |
-| Non-regime MDN-LSTM | q99.1 | 0.2633 | 0.2088 | 0.3563 | 0.7254 | 0.7242 |
-| Joint regime-aware MDN-LSTM | q99.2 | 0.2609 | 0.2147 | 0.3325 | 0.7005 | 0.7097 |
-| Joint regime-aware MDN-LSTM | q99.0 | 0.2409 | 0.1822 | 0.3552 | 0.7005 | 0.7097 |
+| Model | Threshold | Seeds | F1 mean +/- std | Precision mean | Recall mean | ROC-AUC mean | VUS-ROC mean |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Non-regime MDN-LSTM | q99.6 | 3 | 0.2610 +/- 0.0069 | 0.2387 | 0.2880 | 0.7205 | 0.7137 |
+| Joint regime-aware MDN-LSTM | q99.3 | 3 | 0.2446 +/- 0.0209 | 0.1993 | 0.3194 | 0.7144 | 0.7049 |
 
-The joint model is competitive with the matched MDN-LSTM baseline, but the current single-seed
-full-SMD sweep does not show a clear joint-model win: the best MDN-LSTM setting is slightly higher
-than the best joint setting. Most of the absolute gain comes from validation-only threshold
-calibration and persistence filtering, so the project reports those controls explicitly rather than
-treating them as hidden post-processing.
+The joint model is competitive with a matched MDN-LSTM baseline, but the final multi-seed full-SMD
+check does not show a joint-model win. Most of the absolute gain comes from validation-only
+threshold calibration and persistence filtering, so the project reports those controls explicitly
+rather than treating them as hidden post-processing.
 
 Detailed CSV reports live in [`reports/`](reports/), especially
+[`reports/final_summary.md`](reports/final_summary.md) and
 [`reports/summary.csv`](reports/summary.csv).
 
 ## Development Workflow

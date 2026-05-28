@@ -23,6 +23,8 @@ Raw datasets and full run artifacts are intentionally local-only.
 - `smd_mdn_full_rescore_threshold_gpu.csv`: anomaly-only full-SMD MDN-LSTM rescore of high global quantiles with 2-of-5 persistence.
 - `smd_joint_full_fine_quantile_rescore_gpu.csv`: anomaly-only full-SMD joint q99.0-q99.7 fine quantile sweep.
 - `smd_mdn_full_fine_quantile_rescore_gpu.csv`: anomaly-only full-SMD MDN-LSTM q99.0-q99.7 fine quantile sweep.
+- `smd_final_robustness_gpu.csv`: final three-seed full-SMD robustness check for best joint and MDN settings.
+- `final_summary.md`: closure summary with final claims, evidence, and limitations.
 - `smd_mdn_full_tuned_gpu.csv`: full 28-machine run of the selected-machine MDN tuning winner.
 - `smd_joint_tune_gpu.csv`: selected-machine calibrated joint hyperparameter sweep.
 - `smd_mdn_tune_gpu.csv`: selected-machine calibrated MDN-LSTM hyperparameter sweep.
@@ -118,6 +120,12 @@ slightly exceeds the joint setting in this single-seed full-SMD pass. MDN-LSTM r
 at q99.6, with precision `0.2423` and recall `0.2905`; q99.1 was close at F1 `0.2633`. The strongest
 current claim is therefore that the joint model is competitive with a matched MDN-LSTM baseline, but
 not yet clearly better on full SMD without more seeds or stronger regime coupling.
+
+The final three-seed robustness check confirms that MDN-LSTM remains ahead on full SMD under the
+best matched post-processing settings. MDN q99.6 with 2-of-5 persistence reached mean F1
+`0.2610 +/- 0.0069`; joint q99.3 with 2-of-5 persistence reached mean F1 `0.2446 +/- 0.0209`.
+The final project claim is therefore competitive joint modeling plus a rigorous evaluation harness,
+not a full-SMD state-of-the-art improvement.
 
 ## Metric Notes
 
