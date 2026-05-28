@@ -21,6 +21,8 @@ Raw datasets and full run artifacts are intentionally local-only.
 - `smd_joint_full_per_machine_threshold_gpu.csv`: full 28-machine joint per-machine q98 threshold plus 2-of-5 persistence run.
 - `smd_joint_full_rescore_threshold_gpu.csv`: anomaly-only full-SMD rescore of high global quantiles with 2-of-5 persistence.
 - `smd_mdn_full_rescore_threshold_gpu.csv`: anomaly-only full-SMD MDN-LSTM rescore of high global quantiles with 2-of-5 persistence.
+- `smd_joint_full_fine_quantile_rescore_gpu.csv`: anomaly-only full-SMD joint q99.0-q99.7 fine quantile sweep.
+- `smd_mdn_full_fine_quantile_rescore_gpu.csv`: anomaly-only full-SMD MDN-LSTM q99.0-q99.7 fine quantile sweep.
 - `smd_mdn_full_tuned_gpu.csv`: full 28-machine run of the selected-machine MDN tuning winner.
 - `smd_joint_tune_gpu.csv`: selected-machine calibrated joint hyperparameter sweep.
 - `smd_mdn_tune_gpu.csv`: selected-machine calibrated MDN-LSTM hyperparameter sweep.
@@ -108,11 +110,14 @@ setting above the target F1 band. Raising the global validation quantile to q99.
 `0.3204`. More conservative q99.5 and q99.7 thresholds reduced F1 to `0.2485` and `0.2295`,
 respectively, so q99.3 is the current best full-SMD joint benchmark setting.
 
-The matched MDN-LSTM rescore shows that this gain is not purely model-specific. MDN-LSTM also
-improves with q99.3 plus 2-of-5 persistence, reaching F1 `0.2599`, precision `0.2145`, and recall
-`0.3296`. The joint model remains slightly ahead at F1 `0.2628`, but the margin is small (`+0.0029`
-F1), so the strongest current claim is a modest joint-model edge under the same calibrated
-post-processing protocol.
+The fine q99.0-q99.7 rescore confirmed q99.3 as the best joint threshold in this grid. Joint F1
+rose from `0.2409` at q99.0 to `0.2609` at q99.2 and peaked at `0.2628` for q99.3 before declining.
+
+The matched MDN-LSTM fine sweep shows that this gain is not model-specific, and the best MDN setting
+slightly exceeds the joint setting in this single-seed full-SMD pass. MDN-LSTM reached F1 `0.2642`
+at q99.6, with precision `0.2423` and recall `0.2905`; q99.1 was close at F1 `0.2633`. The strongest
+current claim is therefore that the joint model is competitive with a matched MDN-LSTM baseline, but
+not yet clearly better on full SMD without more seeds or stronger regime coupling.
 
 ## Metric Notes
 

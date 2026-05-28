@@ -48,15 +48,17 @@ threshold calibration, and 2-of-5 persistence filtering:
 
 | Model | Threshold | F1 | Precision | Recall | ROC-AUC | VUS-ROC |
 | --- | --- | ---: | ---: | ---: | ---: | ---: |
+| Non-regime MDN-LSTM | q99.6 | 0.2642 | 0.2423 | 0.2905 | 0.7254 | 0.7242 |
 | Joint regime-aware MDN-LSTM | q99.3 | 0.2628 | 0.2227 | 0.3204 | 0.7005 | 0.7097 |
-| Non-regime MDN-LSTM | q99.3 | 0.2599 | 0.2145 | 0.3296 | 0.7254 | 0.7242 |
+| Non-regime MDN-LSTM | q99.1 | 0.2633 | 0.2088 | 0.3563 | 0.7254 | 0.7242 |
+| Joint regime-aware MDN-LSTM | q99.2 | 0.2609 | 0.2147 | 0.3325 | 0.7005 | 0.7097 |
 | Joint regime-aware MDN-LSTM | q99.0 | 0.2409 | 0.1822 | 0.3552 | 0.7005 | 0.7097 |
-| Non-regime MDN-LSTM | q99.0 | 0.2538 | 0.1948 | 0.3640 | 0.7254 | 0.7242 |
 
-The joint model currently has a small full-SMD F1 edge over the matched MDN-LSTM baseline under the
-best calibrated protocol. Most of the absolute gain comes from validation-only threshold calibration
-and persistence filtering, so the project reports those controls explicitly rather than treating
-them as hidden post-processing.
+The joint model is competitive with the matched MDN-LSTM baseline, but the current single-seed
+full-SMD sweep does not show a clear joint-model win: the best MDN-LSTM setting is slightly higher
+than the best joint setting. Most of the absolute gain comes from validation-only threshold
+calibration and persistence filtering, so the project reports those controls explicitly rather than
+treating them as hidden post-processing.
 
 Detailed CSV reports live in [`reports/`](reports/), especially
 [`reports/summary.csv`](reports/summary.csv).
@@ -179,8 +181,12 @@ aaf-rescore-anomaly runs\smd_full_calibrated_gpu\smd-mdn-full-calibrated-gpu `
   --output-root runs\smd_mdn_full_rescore_threshold_gpu `
   --compare reports\smd_mdn_full_rescore_threshold_gpu.csv `
   --strategy validation_quantile_99 `
+  --strategy validation_quantile_991 `
+  --strategy validation_quantile_992 `
   --strategy validation_quantile_993 `
+  --strategy validation_quantile_994 `
   --strategy validation_quantile_995 `
+  --strategy validation_quantile_996 `
   --strategy validation_quantile_997 `
   --persistence 5:2 `
   --overwrite
