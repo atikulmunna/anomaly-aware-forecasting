@@ -21,7 +21,7 @@ The planned model family is an MDN-LSTM with a regime head. It produces:
 - Use synthetic data with held-out generator configurations for controlled ground-truth evaluation.
 - Validate the method on the Server Machine Dataset (SMD) as a real-world benchmark.
 
-## Planned Features
+## Implemented Features
 
 - Synthetic switching time series generator with configurable regimes and failure modes
 - SMD ingestion and preprocessing pipeline
@@ -29,7 +29,7 @@ The planned model family is an MDN-LSTM with a regime head. It produces:
 - Regime posterior estimation and regime-shift detection
 - Validation-only threshold selection for reproducible anomaly metrics
 - Evaluation harness for forecasting, anomaly detection, and regime detection
-- Streamlit dashboard for reviewing archived runs
+- Experiment-suite runner, comparison exports, and anomaly-only rescoring
 
 ## Methodological Principles
 
@@ -41,9 +41,25 @@ This project emphasizes disciplined evaluation over leaderboard chasing:
 - Standardization statistics are fit on training data only.
 - Reported quantitative claims must trace back to reproducible run artifacts.
 
-## Repository Status
+## Current Results
 
-This repository is currently being initialized from the project specification. Implementation code, tests, and experiment configuration files will be added incrementally.
+The strongest current full-SMD anomaly results use channel-max predictive NLL, validation-only
+threshold calibration, and 2-of-5 persistence filtering:
+
+| Model | Threshold | F1 | Precision | Recall | ROC-AUC | VUS-ROC |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| Joint regime-aware MDN-LSTM | q99.3 | 0.2628 | 0.2227 | 0.3204 | 0.7005 | 0.7097 |
+| Non-regime MDN-LSTM | q99.3 | 0.2599 | 0.2145 | 0.3296 | 0.7254 | 0.7242 |
+| Joint regime-aware MDN-LSTM | q99.0 | 0.2409 | 0.1822 | 0.3552 | 0.7005 | 0.7097 |
+| Non-regime MDN-LSTM | q99.0 | 0.2538 | 0.1948 | 0.3640 | 0.7254 | 0.7242 |
+
+The joint model currently has a small full-SMD F1 edge over the matched MDN-LSTM baseline under the
+best calibrated protocol. Most of the absolute gain comes from validation-only threshold calibration
+and persistence filtering, so the project reports those controls explicitly rather than treating
+them as hidden post-processing.
+
+Detailed CSV reports live in [`reports/`](reports/), especially
+[`reports/summary.csv`](reports/summary.csv).
 
 ## Development Workflow
 
@@ -153,6 +169,25 @@ aaf-compare-runs runs --output reports/comparison.json
 If a run directory contains `manifest.json`, fields such as `run_id`, `pipeline`, `dataset`, and
 `seed` are included as columns. Nested metrics are flattened with dotted names such as
 `forecast.nll`, `anomaly.test.f1`, and `anomaly.threshold_free.vus_pr`.
+
+Existing anomaly artifacts can also be rescored without retraining. This is useful for fair
+threshold and persistence sweeps after a full SMD run has already produced `anomaly_validation.npz`
+and `anomaly_test.npz`:
+
+```powershell
+aaf-rescore-anomaly runs\smd_full_calibrated_gpu\smd-mdn-full-calibrated-gpu `
+  --output-root runs\smd_mdn_full_rescore_threshold_gpu `
+  --compare reports\smd_mdn_full_rescore_threshold_gpu.csv `
+  --strategy validation_quantile_99 `
+  --strategy validation_quantile_993 `
+  --strategy validation_quantile_995 `
+  --strategy validation_quantile_997 `
+  --persistence 5:2 `
+  --overwrite
+```
+
+Rescoring still uses only validation scores for threshold selection; the test score distribution is
+never used to choose thresholds.
 
 ## Running Suites
 
