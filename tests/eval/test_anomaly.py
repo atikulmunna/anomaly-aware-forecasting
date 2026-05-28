@@ -351,8 +351,12 @@ def test_select_threshold_rejects_per_machine_strategy_without_groups() -> None:
     [
         ("validation_quantile_98", 2.94),
         ("validation_quantile_985", 2.955),
+        ("validation_quantile_991", 2.973),
+        ("validation_quantile_992", 2.976),
         ("validation_quantile_993", 2.979),
+        ("validation_quantile_994", 2.982),
         ("validation_quantile_995", 2.985),
+        ("validation_quantile_996", 2.988),
         ("validation_quantile_997", 2.991),
     ],
 )
