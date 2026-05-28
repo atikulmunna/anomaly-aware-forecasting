@@ -7,7 +7,11 @@ import shutil
 from dataclasses import dataclass
 from pathlib import Path
 
-from aaf.eval.report import EvaluationReport, evaluate_run_directory
+import numpy as np
+from numpy.typing import NDArray
+
+from aaf.eval.anomaly import threshold_free_metrics
+from aaf.eval.report import EvaluationReport, evaluate_anomaly
 from aaf.experiments.compare import collect_run_rows, write_comparison_csv, write_comparison_json
 from aaf.experiments.manifest import RunManifest, load_run_manifest, write_run_manifest
 
@@ -59,21 +63,32 @@ def rescore_anomaly_run(
     resolved_seed = seed if seed is not None else (
         source_manifest.seed if source_manifest else None
     )
+    artifacts = _load_anomaly_artifacts(source_run_dir)
+    cached_threshold_free = threshold_free_metrics(
+        artifacts.test_scores,
+        artifacts.test_labels,
+    )
 
     reports: dict[str, EvaluationReport] = {}
     for job in jobs:
         job.validate()
         output_dir = output_root / job.run_id
         _prepare_output_dir(output_dir, overwrite=overwrite)
-        report = evaluate_run_directory(
-            source_run_dir,
-            output_path=output_dir / "metrics.json",
-            threshold_strategy=job.threshold_strategy,
-            persistence_window=job.persistence_window,
-            persistence_count=job.persistence_count,
-            include_forecast=False,
-            include_regime=False,
+        report = EvaluationReport(
+            anomaly=evaluate_anomaly(
+                artifacts.validation_scores,
+                artifacts.validation_labels,
+                artifacts.test_scores,
+                artifacts.test_labels,
+                threshold_strategy=job.threshold_strategy,
+                persistence_window=job.persistence_window,
+                persistence_count=job.persistence_count,
+                validation_groups=artifacts.validation_groups,
+                test_groups=artifacts.test_groups,
+                threshold_free=cached_threshold_free,
+            ),
         )
+        report.write_json(output_dir / "metrics.json")
         write_run_manifest(
             output_dir / "manifest.json",
             RunManifest(
@@ -89,6 +104,16 @@ def rescore_anomaly_run(
     if compare_output is not None:
         _write_comparison(compare_output, output_root)
     return reports
+
+
+@dataclass(frozen=True)
+class _AnomalyArtifacts:
+    validation_scores: NDArray[np.float64]
+    validation_labels: NDArray[np.int64]
+    test_scores: NDArray[np.float64]
+    test_labels: NDArray[np.int64]
+    validation_groups: NDArray[np.int64] | None
+    test_groups: NDArray[np.int64] | None
 
 
 def make_rescore_run_id(
@@ -131,6 +156,27 @@ def _require_anomaly_artifacts(source_run_dir: Path) -> None:
     ]
     if missing:
         raise FileNotFoundError(f"missing anomaly artifacts: {', '.join(missing)}")
+
+
+def _load_anomaly_artifacts(source_run_dir: Path) -> _AnomalyArtifacts:
+    with np.load(source_run_dir / "anomaly_validation.npz") as validation_data:
+        validation_scores = np.asarray(validation_data["scores"])
+        validation_labels = np.asarray(validation_data["labels"])
+        validation_groups = (
+            np.asarray(validation_data["groups"]) if "groups" in validation_data else None
+        )
+    with np.load(source_run_dir / "anomaly_test.npz") as test_data:
+        test_scores = np.asarray(test_data["scores"])
+        test_labels = np.asarray(test_data["labels"])
+        test_groups = np.asarray(test_data["groups"]) if "groups" in test_data else None
+    return _AnomalyArtifacts(
+        validation_scores=validation_scores,
+        validation_labels=validation_labels,
+        test_scores=test_scores,
+        test_labels=test_labels,
+        validation_groups=validation_groups,
+        test_groups=test_groups,
+    )
 
 
 def _write_comparison(path: Path, output_root: Path) -> None:

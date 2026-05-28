@@ -127,6 +127,7 @@ def evaluate_anomaly(
     persistence_count: int = 1,
     validation_groups: IntArray | None = None,
     test_groups: IntArray | None = None,
+    threshold_free: ThresholdFreeMetrics | None = None,
 ) -> AnomalyReport:
     """Select an anomaly threshold on validation data and evaluate on test data."""
 
@@ -162,7 +163,11 @@ def evaluate_anomaly(
             persistence_count=persistence_count,
             validation=validation_metrics,
             test=test_metrics,
-            threshold_free=threshold_free_metrics(test_scores, test_labels),
+            threshold_free=(
+                threshold_free
+                if threshold_free is not None
+                else threshold_free_metrics(test_scores, test_labels)
+            ),
             detection_delay=detection_delay(test_labels, test_predictions),
             false_alarm_rate_per_1000=false_alarm_rate_per_1000(test_labels, test_predictions),
         )
@@ -191,7 +196,11 @@ def evaluate_anomaly(
         persistence_count=persistence_count,
         validation=validation_metrics,
         test=test_metrics,
-        threshold_free=threshold_free_metrics(test_scores, test_labels),
+        threshold_free=(
+            threshold_free
+            if threshold_free is not None
+            else threshold_free_metrics(test_scores, test_labels)
+        ),
         detection_delay=detection_delay(test_labels, test_predictions),
         false_alarm_rate_per_1000=false_alarm_rate_per_1000(test_labels, test_predictions),
     )

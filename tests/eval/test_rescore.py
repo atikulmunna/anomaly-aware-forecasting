@@ -4,6 +4,7 @@ import json
 import numpy as np
 import pytest
 
+from aaf.eval.anomaly import ThresholdFreeMetrics
 from aaf.eval.rescore import AnomalyRescoreJob, make_rescore_run_id, rescore_anomaly_run
 from aaf.eval.rescore_cli import main
 from aaf.experiments import RunManifest, write_run_manifest
@@ -63,6 +64,60 @@ def test_rescore_anomaly_run_rejects_missing_anomaly_artifacts(tmp_path) -> None
             tmp_path / "rescored",
             (AnomalyRescoreJob(run_id="q99", threshold_strategy="validation_quantile_99"),),
         )
+
+
+def test_rescore_anomaly_run_reuses_threshold_free_metrics(tmp_path, monkeypatch) -> None:
+    source = tmp_path / "source-run"
+    source.mkdir()
+    np.savez(
+        source / "anomaly_validation.npz",
+        scores=np.array([0.1, 0.2, 0.3, 0.4]),
+        labels=np.array([0, 0, 0, 0]),
+    )
+    np.savez(
+        source / "anomaly_test.npz",
+        scores=np.array([0.1, 0.35, 0.45]),
+        labels=np.array([0, 1, 1]),
+    )
+    calls = 0
+
+    def fake_threshold_free_metrics(
+        scores: np.ndarray,
+        labels: np.ndarray,
+    ) -> ThresholdFreeMetrics:
+        nonlocal calls
+        calls += 1
+        assert scores.tolist() == [0.1, 0.35, 0.45]
+        assert labels.tolist() == [0, 1, 1]
+        return ThresholdFreeMetrics(
+            average_precision=0.5,
+            roc_auc=0.6,
+            vus_pr=0.7,
+            vus_roc=0.8,
+        )
+
+    monkeypatch.setattr("aaf.eval.rescore.threshold_free_metrics", fake_threshold_free_metrics)
+
+    reports = rescore_anomaly_run(
+        source,
+        tmp_path / "rescored",
+        (
+            AnomalyRescoreJob(
+                run_id="q95",
+                threshold_strategy="validation_quantile_95",
+            ),
+            AnomalyRescoreJob(
+                run_id="q99",
+                threshold_strategy="validation_quantile_99",
+            ),
+        ),
+    )
+
+    assert calls == 1
+    assert reports["q95"].anomaly is not None
+    assert reports["q95"].anomaly.threshold_free.vus_roc == pytest.approx(0.8)
+    assert reports["q99"].anomaly is not None
+    assert reports["q99"].anomaly.threshold_free.vus_roc == pytest.approx(0.8)
 
 
 def test_make_rescore_run_id_sanitizes_strategy_names(tmp_path) -> None:
