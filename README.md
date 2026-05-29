@@ -1,17 +1,50 @@
 # Anomaly-Aware Forecasting
 
-A research prototype for joint probabilistic time series forecasting and regime-switching anomaly detection.
+A reproducible research prototype for probabilistic time series forecasting, anomaly detection, and
+regime-aware evaluation on multivariate telemetry.
+
+Built as an end-to-end benchmark suite: synthetic regime-switching data, Server Machine Dataset
+preprocessing, MDN-LSTM and joint regime-aware MDN-LSTM models, validation-only thresholding,
+range-aware anomaly metrics, comparison reports, and multi-seed robustness checks.
+
+## At A Glance
+
+- Full-SMD benchmark over 28 machines and 38-channel telemetry.
+- Probabilistic MDN-LSTM forecasting with diagonal Gaussian mixture emissions.
+- Joint model variant with latent regime posterior estimation.
+- Validation-only threshold selection; test score distributions are never used for calibration.
+- Range-based precision/recall plus VUS-PR/VUS-ROC for anomaly detection.
+- 295 automated tests with pytest, Ruff, and mypy gates.
+- Final release tag: `v0.1.0`.
 
 ## Overview
 
 This project explores an anomaly-aware forecasting system that predicts future time series values while simultaneously estimating latent regimes and flagging anomalous behavior. The core idea is to avoid treating forecasting and anomaly detection as two disconnected pipelines: the forecasting distribution and regime signal should be learned together and evaluated together.
 
-The planned model family is an MDN-LSTM with a regime head. It produces:
+The main model family is an MDN-LSTM with an optional regime head. It produces:
 
 - Probabilistic forecasts using Gaussian mixture outputs
 - Posterior probabilities over latent regimes
 - Anomaly scores derived from predictive likelihood
 - Detection signals for persistent regime shifts and structured sensor failures
+
+## System Design
+
+```mermaid
+flowchart LR
+    A[Synthetic generator<br/>or SMD telemetry] --> B[Train-only standardization]
+    B --> C[Windowed datasets]
+    C --> D1[MDN-LSTM baseline]
+    C --> D2[Joint regime-aware<br/>MDN-LSTM]
+    D1 --> E[Probabilistic forecast<br/>mixture distribution]
+    D2 --> E
+    D2 --> F[Latent regime posterior]
+    E --> G[Predictive-likelihood<br/>anomaly scores]
+    F --> H[Regime diagnostics]
+    G --> I[Validation-only threshold<br/>and persistence filtering]
+    I --> J[Range metrics<br/>VUS metrics<br/>reports]
+    H --> J
+```
 
 ## Goals
 
@@ -59,6 +92,17 @@ rather than treating them as hidden post-processing.
 Detailed CSV reports live in [`reports/`](reports/), especially
 [`reports/final_summary.md`](reports/final_summary.md) and
 [`reports/summary.csv`](reports/summary.csv).
+
+## Lessons Learned
+
+- Regime-aware modeling can help in controlled synthetic settings, but full SMD favored the simpler
+  MDN-LSTM baseline in the final robustness check.
+- Validation-only threshold calibration and persistence filtering mattered more than architecture
+  choice for full-SMD anomaly F1.
+- Selected-machine improvements were not reliable predictors of full 28-machine benchmark results.
+- Regime posterior signals were useful for diagnostics, but weak as standalone SMD anomaly scores.
+- Negative results were kept in the reports because they are part of the evaluation story, not
+  cleanup to hide.
 
 ## Development Workflow
 
