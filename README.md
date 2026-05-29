@@ -227,4 +227,4 @@ suite runner exports a comparison table after all jobs finish.
 
 ## License
 
-License information will be added before the first public release.
+This project is released under the MIT License. See [`LICENSE`](LICENSE).
